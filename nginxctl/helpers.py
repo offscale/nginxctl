@@ -23,6 +23,25 @@ def del_keys_d(d, *keys, key=None, ignore_errors=True):
     return d
 
 
+def omit(d, no):
+    return {k: v for k, v in d.items() if k != no}
+
+
+def update_directive(directive, args, new_directive=None, new_args=None):
+    def visit(p, key, value):
+        if is_directive(value) and omit(value, 'line') == {'directive': directive,
+                                                           'args': args}:
+            value.update({'args': new_args or args,
+                          'directive': new_directive or directive})
+        return key, value
+
+    return visit
+
+
+def is_directive(obj):
+    return isinstance(obj, dict) and obj.keys() == frozenset({'args', 'directive', 'line'})
+
+
 def upsert_block():
     raise NotImplemented()
 
@@ -60,73 +79,3 @@ def get_dict_by_key_val(obj, key, value):
         pass
     else:
         raise NotImplementedError('get_dict_by_key_val for {!r} {}'.format(type(obj), obj))
-
-
-def get_dict_by_key_va(obj, key, val):
-    if isinstance(obj, dict):
-        for k, v in obj.items():
-            if k == key and v == val:
-                print('obj:'.ljust(20), obj)
-                return obj
-            elif isinstance(obj, (list, tuple, dict)):
-                r = get_dict_by_key_val(obj, key, val)
-                if isinstance(r, dict):
-                    return r
-            else:
-                print('unexpectedly got type:', type(obj))
-    elif isinstance(obj, (list, tuple)):
-        for elem in obj:
-            r = get_dict_by_key_val(elem, key, val)
-            if isinstance(r, dict):
-                print('returning:'.ljust(20), r)
-                return r
-    else:
-        raise NotImplementedError('get_dict_by_key_val for {!r}'.format(type(obj)))
-
-
-def filter_map_block(ds, *filter_callback_tuples):
-    """
-    Example:
-
-    Replace listen port when 'localhost' is `server_name` and change `server_name` to 'example.com'
-    >>> import crossplane
-    >>> filter_map_block( \
-        crossplane.parse('/etc/nginx/nginx.conf'), \
-        ((lambda block: all((isinstance(block, dict), \
-                             block.get_dict_by_key_val('directive', '') == 'server_name', \
-                             block['args'] == ['localhost']))), \
-         lambda block: replace_attr(block, 'args', ['example.com'])), \
-        ((lambda block: all((isinstance(block, dict), \
-                             block.get_dict_by_key_val('directive', '') == 'listen', \
-                             block['args'] == ['80']))), \
-         lambda block: replace_attr(block, 'args', ['8080'])) \
-    )
-    ```
-
-    :param ds:
-    :param filter_callback_tuples:
-    :return:
-    """
-
-    # TODO: Make iteration O(n); then optimise until it's exactly n iterations. E.g., operator fusion
-
-    def apply_matching_functions(directive):
-        def process(block):
-            if isinstance(block, dict):
-                for filter_by, callback in filter_callback_tuples:
-                    if filter_by(block):
-                        old_block = block.copy()
-                        block.clear()
-                        block.update(callback(old_block))
-                if 'block' in block:
-                    return process(block['block'])
-            elif isinstance(block, list):
-                block = [process(block) for block in block]
-            return block
-
-        return process(directive)
-
-    return type(ds)(apply_matching_functions(directive)
-                    if 'block' in directive
-                    else directive
-                    for directive in ds)
