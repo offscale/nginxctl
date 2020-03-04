@@ -1,3 +1,4 @@
+import string
 from collections import deque
 from itertools import islice
 from pprint import PrettyPrinter
@@ -79,3 +80,17 @@ def get_dict_by_key_val(obj, key, value):
         pass
     else:
         raise NotImplementedError('get_dict_by_key_val for {!r} {}'.format(type(obj), obj))
+
+
+def strings(filename, minimum=4):
+    with open(filename, errors='ignore') as f:
+        result = ''
+        for c in f.read():
+            if c in string.printable:
+                result += c
+                continue
+            if len(result) >= minimum:
+                yield result
+            result = ''
+        if len(result) >= minimum:  # catch result at EOF
+            yield result

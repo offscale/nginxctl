@@ -1,3 +1,5 @@
 crossplane
 pyyaml
 boltons
+attrs
+toolz
