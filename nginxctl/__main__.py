@@ -205,7 +205,29 @@ parse_to_directives = partial(
 )
 
 
-def main():
+def make_directive(args=None, directive=None, block=None, line=None):
+    return {
+        'args': args or [],
+        'directive': directive or None,
+        'block': block or [],
+        'line': line or None
+    }
+
+
+def make_update_directive(maybe_directive, **kwargs):
+    if maybe_directive is None or len(maybe_directive) == 0:
+        return make_directive(**kwargs)
+
+    for k, v in kwargs.items():
+        if not maybe_directive[k]:
+            maybe_directive[k] = v
+        else:
+            add_to(maybe_directive[k], v)
+
+    return maybe_directive
+
+
+def main(argv=None):
     parser = _build_parser()
     supported_destinations_f = lambda: frozenset(action.dest
                                                  for action in parser._actions
@@ -217,7 +239,7 @@ def main():
     # supported_fields = supported_fields_f()
 
     level, working, whole, view, last_block = 0, [], [], None, None
-    for idx, arg in enumerate(sys.argv[1:]):
+    for idx, arg in enumerate(argv or sys.argv[1:]):
         if arg == '-{':
             level += 1
         elif arg in frozenset(('-b', '--block')):
@@ -225,14 +247,9 @@ def main():
             view = working
             for i in range(level - 1):
                 view = view[-1]
-            view.append([{
-                'args': [],
-                'directive': None,
-                'block': [],
-                'line': None
-            }])
+            view.append([make_directive()])
             last_block = idx
-            view = view[-1][-1]
+            view = view[-1]
         elif arg == '-}':
             whole.append(tuple(working))
             working.clear()
@@ -240,51 +257,42 @@ def main():
         elif last_block == idx - 1:
             add_update_support_cli_args(arg, parser, supported_fields_f)
 
-            if view['directive'] is None:
-                view['directive'] = arg
+            if view[-1]['directive'] is None:
+                view[-1]['directive'] = arg
             else:
-                view['block'].append({
-                    'args': [],
-                    'directive': arg,
-                    'block': [],
-                    'line': None
-                })
-                view = view['block'][-1]
+                raise NotImplementedError()
+                # view[-1]['block'].append(make_directive(directive=arg))
+                # view = view[-1]['block']
         else:
             if arg.startswith('-'):
                 add_update_support_cli_args(arg, parser, supported_fields_f)
 
                 directive = arg.lstrip('-')
-                if view['directive'] is None:
-                    view['directive'] = directive
+                if view[-1]['directive'] is None:
+                    view[-1]['directive'] = directive
                 else:
-                    view['block'].append({
-                        'args': [],
-                        'directive': directive,
-                        'block': [],
-                        'line': None
-                    })
-                    view = view['block'][-1]
+                    if last_block == idx - 2:
+                        view[-1]['block'].append(make_directive(directive=directive))
+                        view = view[-1]['block']
+                    else:
+                        view.append(make_directive(directive=directive))
             else:
-                if len(view['args']) == 0:
-                    view['args'].append(arg)
+                if len(view[-1]['args']) == 0:
+                    view[-1]['args'].append(arg)
                 else:
-                    view['block'].append({
-                        'args': [arg],
-                        'directive': None,
-                        'block': [],
-                        'line': None
-                    })
-                    view = view['block'][-1]
+                    raise NotImplementedError()
+                    # view[-1]['block'].append(make_directive(args=[arg]))
+                    # view = view[-1]['block']
 
     if level & 1 != 0:
         raise argparse.ArgumentTypeError('Imbalanced {}')
 
+    # return whole
     return remap(tuple((e
                         for elements in whole
                         for elem in elements
                         for e in elem)),
-                 visit=lambda p, k, v: v is not None)
+                 visit=lambda p, k, v: v != [])
 
 
 def add_update_support_cli_args(arg, parser, supported_fields_f):

@@ -11,6 +11,7 @@ import crossplane
 from boltons.iterutils import remap
 from pkg_resources import resource_filename
 
+from nginxctl.__main__ import main
 from nginxctl.helpers import get_dict_by_key_val, del_keys_d, update_directive, pp
 from nginxctl.pkg_utils import PythonPackageInfo
 
@@ -54,11 +55,47 @@ class TestParser(TestCase):
             visit=update_directive('listen', ['80'], new_args=['8080'])
         )
         pp(nginx_conf_parse['parsed'])
-        #print(crossplane.build(self.nginx_conf_parse['config'][0]['parsed']))
+        # print(crossplane.build(self.nginx_conf_parse['config'][0]['parsed']))
         self.assertDictEqual(no_line(get_dict_by_key_val(nginx_conf_parse['parsed'], 'directive', 'server_name')),
                              {'directive': 'server_name', 'args': ['example.com']})
         self.assertDictEqual(no_line(get_dict_by_key_val(nginx_conf_parse['parsed'], 'directive', 'listen')),
                              {'directive': 'listen', 'args': ['8080']})
+
+    def test_cli_args(self):
+        output = main(['-b', 'server', '--server_name', 'localhost', '--listen', '8080',
+                       '-b', 'location', '/', '--root', "'/tmp/wwwroot'", '-}', '-}'])
+        pp(output)
+        self.assertDictEqual(
+            output[0],
+            {
+                'directive': 'server',
+                'block': [
+                    {
+                        'directive': 'server_name',
+                        'args': ['localhost'],
+                        'line': None
+                    },
+                    {
+                        'directive': 'listen',
+                        'args': ['8080'],
+                        'line': None
+                    },
+                    {
+                        'directive': 'location',
+                        'args': ['/'],
+                        'block': [
+                            {
+                                'directive': 'root',
+                                'args': ["'/tmp/wwwroot'"],
+                                'line': None
+                            }
+                        ],
+                        'line': None,
+                    }
+                ],
+                'line': None
+            }
+        )
 
 
 if __name__ == '__main__':
