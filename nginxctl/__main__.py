@@ -41,15 +41,19 @@ unquoted_str = lambda arg: arg.translate(str.maketrans(dict.fromkeys('\'"', ''))
 
 
 def _build_parser():
-    default_nginx = which('nginx')
-    default_nginx_usage = next(line
-                               for line in strings(default_nginx)
-                               if 'set prefix path' in line).split()
-    default_prefix, default_conf = tuple(
-        l[:-1]
-        for i, l in enumerate(default_nginx_usage)
-        if i > 0 and 'default' in default_nginx_usage[i - 1]
-    )
+    if 'GITHUB_ACTION' in os.environ:
+        default_nginx, default_prefix, default_conf = '/usr/local/bin/nginx', '/usr/local/Cellar/nginx/1.17.9/', '/usr/local/etc/nginx/nginx.conf'
+    else:
+        default_nginx = which('nginx')
+        default_nginx_usage = next(line
+                                   for line in strings(default_nginx)
+                                   if 'set prefix path' in line).split()
+        default_prefix, default_conf = tuple(
+            l[:-1]
+            for i, l in enumerate(default_nginx_usage)
+            if i > 0 and 'default' in default_nginx_usage[i - 1]
+        )
+        print(default_nginx, default_prefix, default_conf)
 
     parser = ArgumentParser(
         prog='python -m nginxctl',
