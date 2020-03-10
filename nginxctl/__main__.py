@@ -10,7 +10,6 @@ from functools import partial
 from shutil import which
 
 import toolz
-from boltons.iterutils import remap
 
 from nginxctl import __version__
 from nginxctl.helpers import it_consumes, pp, strings
@@ -53,7 +52,6 @@ def _build_parser():
             for i, l in enumerate(default_nginx_usage)
             if i > 0 and 'default' in default_nginx_usage[i - 1]
         )
-        print(default_nginx, default_prefix, default_conf)
 
     parser = ArgumentParser(
         prog='python -m nginxctl',
@@ -209,12 +207,13 @@ parse_to_directives = partial(
 )
 
 
-def make_directive(args=None, directive=None, block=None, line=None):
+def make_directive(args=None, directive=None, block=None, line=None, level=None):
     return {
         'args': args or [],
         'directive': directive or None,
         'block': block or [],
-        'line': line or None
+        'line': line or None,
+        '_level': level or 0
     }
 
 
@@ -231,6 +230,18 @@ def make_update_directive(maybe_directive, **kwargs):
     return maybe_directive
 
 
+def traverse_to_level(directive, level):
+    if directive['_level'] == level:
+        return directive
+
+    for _directive in directive['block']:
+        found = traverse_to_level(_directive, level)
+        if found is not None:
+            return found
+
+    return None
+
+
 def main(argv=None):
     parser = _build_parser()
     supported_destinations_f = lambda: frozenset(action.dest
@@ -241,20 +252,62 @@ def main(argv=None):
                                            for option_string in action.option_strings)
 
     # supported_fields = supported_fields_f()
-
-    level, working, whole, view, last_block = 0, [], [], None, None
+    level, top_d, last_block = 0, make_directive(), None
+    sen_d = top_d
     for idx, arg in enumerate(argv or sys.argv[1:]):
+        if arg == '-{':
+            level += 1
+            sen_d = traverse_to_level(top_d, level)
+        elif arg in frozenset(('-b', '--block')):
+            level += 1
+            last_block = idx
+        elif arg == '-}':
+            level -= 1
+        elif idx == last_block - 1:
+            if sen_d['directive'] is None:
+                sen_d['directive'] = arg
+            else:
+                raise NotImplementedError()
+        elif idx == last_block - 2:
+            if len(sen_d['args']) == 0:
+                sen_d['args'].append(arg)
+            else:
+                raise NotImplementedError()
+        else:
+            if arg.startswith('-'):
+                if sen_d['directive'] is None:
+                    sen_d['directive'] = arg
+                else:
+                    sen_d = traverse_to_level(top_d, level-1)
+                    sen_d['block'].append(make_directive(directive=arg))
+                    sen_d = sen_d['block'][0]
+            elif len(sen_d['args']) == 0:
+                sen_d['args'].append(arg)
+            else:
+                sen_d = traverse_to_level(top_d, level - 1)
+                print(level, sen_d)
+                sen_d['block'].append(make_directive(args=[arg]))
+                sen_d = sen_d['block'][0]
+
+    return top_d
+    """
+    level, working, whole, view, last_block = 0, [], [], None, None
+    # print('idx\tlevel\targ')
+    for idx, arg in enumerate(argv or sys.argv[1:]):
+        # print(idx, '\t', level, '\t\t\'', arg, '\'', sep='')
         if arg == '-{':
             level += 1
         elif arg in frozenset(('-b', '--block')):
             level += 1
             view = working
+            '''
             for i in range(level - 1):
                 view = view[-1]
-            view.append([make_directive()])
+            '''
+            view.append([make_directive(level=level)])
             last_block = idx
             view = view[-1]
-        elif arg == '-}':
+        elif arg == '-}' and level == 0:
             whole.append(tuple(working))
             working.clear()
             level -= 1
@@ -272,21 +325,38 @@ def main(argv=None):
                 add_update_support_cli_args(arg, parser, supported_fields_f)
 
                 directive = arg.lstrip('-')
-                if view[-1]['directive'] is None:
+                if isinstance(view, (list, tuple)) and len(view) == 0:
+                    view.append(make_directive(directive=directive, level=level))
+                    view = view[-1]['block']
+                elif view[-1]['directive'] is None:
                     view[-1]['directive'] = directive
-                else:
-                    if last_block == idx - 2:
-                        view[-1]['block'].append(make_directive(directive=directive))
-                        view = view[-1]['block']
+                else:  # if last_block == idx - 2:
+                    # print("{}\n\t['block'].append(make_directive(directive={!r}))".format(view[-1], directive))
+                    if level == view[-1]['_level']:
+                        view.append(make_directive(directive=directive, level=level))
                     else:
-                        view.append(make_directive(directive=directive))
+                        view[-1]['block'].append(make_directive(directive=directive, level=level))
+                    view = view[-1]['block']
+                # else:
+                #    view.append(make_directive(directive=directive))
             else:
-                if len(view[-1]['args']) == 0:
+                print('view:', view, ';')
+                if isinstance(view, (list, tuple)) and len(view) == 0:
+                    view.append(make_directive(args=[arg], level=level))
+                    view = view[-1]['block']
+                elif len(view[-1]['args']) == 0:
                     view[-1]['args'].append(arg)
+                elif view[-1]['_level'] == level:
+                    view.append(make_directive(args=[arg]))
+                    view = view[-1]['block']
+                elif level > view[-1]['_level']:
+                    view[-1]['block'].append(make_directive(args=[arg]))
+                    view = view[-1]['block']
                 else:
+                    print("view[-1]:", view[-1])
                     raise NotImplementedError()
-                    # view[-1]['block'].append(make_directive(args=[arg]))
-                    # view = view[-1]['block']
+                    #
+                    #
 
     if level & 1 != 0:
         raise argparse.ArgumentTypeError('Imbalanced {}')
@@ -296,7 +366,8 @@ def main(argv=None):
                         for elements in whole
                         for elem in elements
                         for e in elem)),
-                 visit=lambda p, k, v: v != [])
+                 visit=lambda p, k, v: v != [] and k != '_level')
+    """
 
 
 def add_update_support_cli_args(arg, parser, supported_fields_f):
