@@ -242,6 +242,26 @@ def traverse_to_level(directive, level):
     return None
 
 
+def set_directive(top_directive, option, level):
+    directive = traverse_to_level(top_directive, level)
+    if directive is None:
+        directive = traverse_to_level(top_directive, level - 1)
+    assert directive is not None
+    if option.startswith('-'):
+        if directive['directive'] is None:
+            directive['directive'] = option
+        elif directive['_level'] < level:
+            directive['block'].append(make_directive(option))
+        else:
+            directive = traverse_to_level(top_directive, level -1)
+            directive['block'].append(make_directive(option))
+            raise NotImplementedError()
+    else:
+        directive['args'].append(option)
+
+    return directive
+
+
 def main(argv=None):
     parser = _build_parser()
     supported_destinations_f = lambda: frozenset(action.dest
@@ -274,20 +294,9 @@ def main(argv=None):
             else:
                 raise NotImplementedError()
         else:
-            if arg.startswith('-'):
-                if sen_d['directive'] is None:
-                    sen_d['directive'] = arg
-                else:
-                    sen_d = traverse_to_level(top_d, level-1)
-                    sen_d['block'].append(make_directive(directive=arg))
-                    sen_d = sen_d['block'][0]
-            elif len(sen_d['args']) == 0:
-                sen_d['args'].append(arg)
-            else:
-                sen_d = traverse_to_level(top_d, level - 1)
-                print(level, sen_d)
-                sen_d['block'].append(make_directive(args=[arg]))
-                sen_d = sen_d['block'][0]
+            directive = set_directive(top_d, arg, level)
+            assert directive is not None
+            sen_d = directive
 
     return top_d
     """
