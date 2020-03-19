@@ -230,6 +230,48 @@ def make_update_directive(maybe_directive, **kwargs):
     return maybe_directive
 
 
+d = {'foo': 'bar', 'more':
+    [  # Level 1
+        {'foo': None, 'more': [  # Level 2
+            {'foo': 'can', 'more': []}
+        ]
+         }
+    ]
+     }
+
+
+def traverse_to_level(obj, level):
+    if obj['_level'] == level:
+        return obj
+
+    for _obj in obj['block']:
+        found = traverse_to_level(_obj, level)
+        if found is not None:
+            return found
+
+    return None
+
+
+def set_obj(top_obj, value, level):
+    obj = traverse_to_level(top_obj, level)
+    if obj is None:
+        directive = traverse_to_level(top_obj, level - 1)
+    assert obj is not None
+    if obj['foo'] is None:
+        obj['foo'] = value
+    elif obj['_level'] < level:
+        obj['more'].append({'foo': value,
+                            'more': [],
+                            '_level': level})
+    else:
+        obj = traverse_to_level(top_obj, level - 1)
+        obj['more'].append({'foo': value,
+                            'more': [],
+                            '_level': level})
+
+    return obj
+
+
 def traverse_to_level(directive, level):
     if directive['_level'] == level:
         return directive
@@ -253,7 +295,7 @@ def set_directive(top_directive, option, level):
         elif directive['_level'] < level:
             directive['block'].append(make_directive(option))
         else:
-            directive = traverse_to_level(top_directive, level -1)
+            directive = traverse_to_level(top_directive, level - 1)
             directive['block'].append(make_directive(option))
             raise NotImplementedError()
     else:
