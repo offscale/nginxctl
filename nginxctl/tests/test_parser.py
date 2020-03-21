@@ -17,7 +17,9 @@ from nginxctl.pkg_utils import PythonPackageInfo
 
 
 class TestParser(TestCase):
-    def comment_setUp(self):
+    maxDiff = 1200
+
+    def setUp(self):
         app_name = PythonPackageInfo().get_app_name()
         self.nginx_conf_fname = path.join(
             path.dirname(path.join(resource_filename(app_name, '__init__.py'))),
@@ -27,10 +29,10 @@ class TestParser(TestCase):
 
         self.temp_dir = mkdtemp(app_name, self.__class__.__name__)
 
-    def comment_tearDown(self):
+    def tearDown(self):
         rmtree(self.temp_dir)
 
-    def comment_test_filter_map_block(self):
+    def test_filter_map_block(self):
         for config in self.nginx_conf_parse['config']:
             self.assertEqual(config['status'], 'ok')
 
@@ -66,7 +68,7 @@ class TestParser(TestCase):
                        '-b', 'location', '/', '--root', "'/tmp/wwwroot'", '-}', '-}'])
         pp(output)
         self.assertDictEqual(
-            output[0],
+            output,
             {
                 'directive': 'server',
                 'block': [

@@ -1,18 +1,16 @@
 #!/usr/bin/env python
 
 import argparse
-import itertools
 import os
 import sys
 from argparse import ArgumentParser
 from enum import Enum
-from functools import partial
+from functools import reduce
 from shutil import which
-
-import toolz
 
 from nginxctl import __version__
 from nginxctl.helpers import it_consumes, pp, strings
+from nginxctl.pkg_utils import PythonPackageInfo
 
 
 class Command(Enum):
@@ -54,7 +52,7 @@ def _build_parser():
         )
 
     parser = ArgumentParser(
-        prog='python -m nginxctl',
+        prog='python -m {}'.format(PythonPackageInfo().get_app_name()),
         description='Commands for modifying and controlling nginx over the command-line.',
         epilog='Example usage: %(prog)s -w \'/tmp/wwwroot\' -p 8080 -i \'192.168.2.1\' '
                '-w \'/mnt/webroot\' -p 9001 -i \'localhost\' --path \'/api\' --proxy-pass  \'192.168.2.1/api\''
@@ -98,327 +96,83 @@ def _build_parser():
     return parser
 
 
-has_call = lambda attr, target: hasattr(target, attr) and hasattr(getattr(target, attr), '__call__')
-
-
-def add_to(target, item):
-    _has_call = partial(has_call, target=target)
-
-    if _has_call('append'):
-        target = target  # type: list
-        target.append(item)
-    elif _has_call('add'):
-        target = target  # type: set
-        target.add(item)
-    elif _has_call('__setitem__'):
-        target = target  # type: dict
-        arity = len(item)
-        if len(item) != 2:
-            raise TypeError('expected 2 arguments, got {} from {!r}'.format(arity, item))
-        target.__setitem__(*item)
-    elif _has_call('join'):
-        target = target  # type: bytes
-        return target.join(item)
-    else:
-        raise NotImplementedError('Adding to {!r}'.format(type(target)))
-
-    return target
-
-
-def process_group(group, paired_sequence_handler):
-    processed_group = []
-
-    if len(group) == 0:
-        return processed_group
-
-    odd = (len(group) % 2) != 0
-    raw_pairs = group[:-1] if odd else group
-    pairs = toolz.partition_all(2, raw_pairs)
-    result = paired_sequence_handler(pairs)
-
-    if result:
-        processed_group.append(result)
-
-    if odd:
-        processed_group.append(group[-1])
-
-    return processed_group
-
-
-def build_dict_by_update(sequence, pair_handler):
-    # return dict(pair_handler(*pair)
-    #             for pair in sequence)
-    result = {}
-    for pair in sequence:
-        result.update(pair_handler(*pair))
-
-    return result
-
-
-def build_list_by_update(sequence, pair_handler):
-    # return dict(pair_handler(*pair)
-    #             for pair in sequence)
-    result = []
-    for pair in sequence:
-        result.append(pair_handler(*pair))
-
-    return result
-
-
-def solution(source, group_handler):
-    built = []
-    group = []
-
-    sentinel = object()
-
-    for value in itertools.chain(source, [sentinel]):
-        if not isinstance(value, list) and value is not sentinel:
-            group.append(value)
-            continue
-
-        built.extend(group_handler(group))
-        group = []
-
-        if value is sentinel:
-            break
-
-        result = solution(
-            source=value,
-            group_handler=group_handler,
-        )
-        built.append(result)
-
-    return built
-
-
-parse_to_directives = partial(
-    solution,
-    group_handler=partial(
-        process_group,
-        paired_sequence_handler=lambda s_: build_list_by_update(
-            s_,
-            lambda key, value: (lambda k, v: {
-                'args': [v],
-                'directive': k.lstrip('-'),
-                'line': None
-            })(*((key, value) if key.startswith('-') else (value, key)))
-        )
-    )
-)
-
-
 def make_directive(args=None, directive=None, block=None, line=None, level=None):
     return {
         'args': args or [],
         'directive': directive or None,
         'block': block or [],
-        'line': line or None,
-        '_level': level or 0
+        'line': line or None
     }
 
 
-def make_update_directive(maybe_directive, **kwargs):
-    if maybe_directive is None or len(maybe_directive) == 0:
-        return make_directive(**kwargs)
-
-    for k, v in kwargs.items():
-        if not maybe_directive[k]:
-            maybe_directive[k] = v
-        else:
-            add_to(maybe_directive[k], v)
-
-    return maybe_directive
+def get_nested_dict(obj, path):
+    return reduce(lambda o, n: o['block'][n], path, obj)
 
 
-d = {'foo': 'bar', 'more':
-    [  # Level 1
-        {'foo': None, 'more': [  # Level 2
-            {'foo': 'can', 'more': []}
-        ]
-         }
-    ]
-     }
+def get_nested_list(obj, path):  # assert len(path) > 0
+    return reduce(lambda o, n: o[n]['block'], path, obj['block'])
 
 
-def traverse_to_level(obj, level):
-    if obj['_level'] == level:
-        return obj
-
-    for _obj in obj['block']:
-        found = traverse_to_level(_obj, level)
-        if found is not None:
-            return found
-
-    return None
-
-
-def set_obj(top_obj, value, level):
-    obj = traverse_to_level(top_obj, level)
-    if obj is None:
-        directive = traverse_to_level(top_obj, level - 1)
-    assert obj is not None
-    if obj['foo'] is None:
-        obj['foo'] = value
-    elif obj['_level'] < level:
-        obj['more'].append({'foo': value,
-                            'more': [],
-                            '_level': level})
+def insert_into(obj, path, value, key):
+    block = get_nested_list(obj, path[:-1])
+    try:
+        directive = block[path[-1]]
+    except IndexError:
+        block.append(make_directive(**{key: value}))
+        return
+    if not directive[key]:
+        directive[key] = value
     else:
-        obj = traverse_to_level(top_obj, level - 1)
-        obj['more'].append({'foo': value,
-                            'more': [],
-                            '_level': level})
-
-    return obj
-
-
-def traverse_to_level(directive, level):
-    if directive['_level'] == level:
-        return directive
-
-    for _directive in directive['block']:
-        found = traverse_to_level(_directive, level)
-        if found is not None:
-            return found
-
-    return None
-
-
-def set_directive(top_directive, option, level):
-    directive = traverse_to_level(top_directive, level)
-    if directive is None:
-        directive = traverse_to_level(top_directive, level - 1)
-    assert directive is not None
-    if option.startswith('-'):
-        if directive['directive'] is None:
-            directive['directive'] = option
-        elif directive['_level'] < level:
-            directive['block'].append(make_directive(option))
-        else:
-            directive = traverse_to_level(top_directive, level - 1)
-            directive['block'].append(make_directive(option))
-            raise NotImplementedError()
-    else:
-        directive['args'].append(option)
-
-    return directive
+        block.append(make_directive(**{key: value}))
 
 
 def main(argv=None):
-    parser = _build_parser()
-    supported_destinations_f = lambda: frozenset(action.dest
-                                                 for action in parser._actions
-                                                 if isinstance(action, argparse._StoreAction))
-    supported_fields_f = lambda: frozenset(option_string
-                                           for action in parser._actions
-                                           for option_string in action.option_strings)
+    p, top_d, idx, last_idx = [], make_directive(), 0, 0
+    argv = tuple(argv or sys.argv[1:])
 
-    # supported_fields = supported_fields_f()
-    level, top_d, last_block = 0, make_directive(), None
-    sen_d = top_d
-    for idx, arg in enumerate(argv or sys.argv[1:]):
+    while idx < len(argv):
+        arg = argv[idx]
         if arg == '-{':
-            level += 1
-            sen_d = traverse_to_level(top_d, level)
+            p.append(-1)
+
         elif arg in frozenset(('-b', '--block')):
-            level += 1
-            last_block = idx
+            idx += 1
+            arg = argv[idx]
+            if idx == 1:
+                top_d['directive'] = arg
+            else:
+                insert_into(top_d, p, arg, 'directive')
+
+            if not argv[idx + 1].startswith('--'):
+                idx += 1
+                insert_into(top_d, p, [argv[idx]], 'args')
+
+            p.append(-1)
+
         elif arg == '-}':
-            level -= 1
-        elif idx == last_block - 1:
-            if sen_d['directive'] is None:
-                sen_d['directive'] = arg
-            else:
-                raise NotImplementedError()
-        elif idx == last_block - 2:
-            if len(sen_d['args']) == 0:
-                sen_d['args'].append(arg)
-            else:
-                raise NotImplementedError()
+            p.pop(-1)
+
         else:
-            directive = set_directive(top_d, arg, level)
-            assert directive is not None
-            sen_d = directive
-
-    return top_d
-    """
-    level, working, whole, view, last_block = 0, [], [], None, None
-    # print('idx\tlevel\targ')
-    for idx, arg in enumerate(argv or sys.argv[1:]):
-        # print(idx, '\t', level, '\t\t\'', arg, '\'', sep='')
-        if arg == '-{':
-            level += 1
-        elif arg in frozenset(('-b', '--block')):
-            level += 1
-            view = working
-            '''
-            for i in range(level - 1):
-                view = view[-1]
-            '''
-            view.append([make_directive(level=level)])
-            last_block = idx
-            view = view[-1]
-        elif arg == '-}' and level == 0:
-            whole.append(tuple(working))
-            working.clear()
-            level -= 1
-        elif last_block == idx - 1:
-            add_update_support_cli_args(arg, parser, supported_fields_f)
-
-            if view[-1]['directive'] is None:
-                view[-1]['directive'] = arg
+            if arg.startswith('--'):
+                key = 'directive'
             else:
-                raise NotImplementedError()
-                # view[-1]['block'].append(make_directive(directive=arg))
-                # view = view[-1]['block']
-        else:
-            if arg.startswith('-'):
-                add_update_support_cli_args(arg, parser, supported_fields_f)
-
-                directive = arg.lstrip('-')
-                if isinstance(view, (list, tuple)) and len(view) == 0:
-                    view.append(make_directive(directive=directive, level=level))
-                    view = view[-1]['block']
-                elif view[-1]['directive'] is None:
-                    view[-1]['directive'] = directive
-                else:  # if last_block == idx - 2:
-                    # print("{}\n\t['block'].append(make_directive(directive={!r}))".format(view[-1], directive))
-                    if level == view[-1]['_level']:
-                        view.append(make_directive(directive=directive, level=level))
-                    else:
-                        view[-1]['block'].append(make_directive(directive=directive, level=level))
-                    view = view[-1]['block']
-                # else:
-                #    view.append(make_directive(directive=directive))
-            else:
-                print('view:', view, ';')
-                if isinstance(view, (list, tuple)) and len(view) == 0:
-                    view.append(make_directive(args=[arg], level=level))
-                    view = view[-1]['block']
-                elif len(view[-1]['args']) == 0:
-                    view[-1]['args'].append(arg)
-                elif view[-1]['_level'] == level:
-                    view.append(make_directive(args=[arg]))
-                    view = view[-1]['block']
-                elif level > view[-1]['_level']:
-                    view[-1]['block'].append(make_directive(args=[arg]))
-                    view = view[-1]['block']
-                else:
-                    print("view[-1]:", view[-1])
-                    raise NotImplementedError()
-                    #
-                    #
-
-    if level & 1 != 0:
+                key = 'args'
+                arg = [arg]
+            insert_into(top_d, p, arg, key)
+        idx += 1
+    if p:
         raise argparse.ArgumentTypeError('Imbalanced {}')
+    return top_d
 
-    # return whole
-    return remap(tuple((e
-                        for elements in whole
-                        for elem in elements
-                        for e in elem)),
-                 visit=lambda p, k, v: v != [] and k != '_level')
-    """
+
+"""
+# return whole
+return remap(tuple((e
+                    for elements in whole
+                    for elem in elements
+                    for e in elem)),
+             visit=lambda p, k, v: v != [] and k != '_level')
+"""
 
 
 def add_update_support_cli_args(arg, parser, supported_fields_f):
