@@ -35,6 +35,25 @@ def insert_into(obj, path, value, key):
         block.append(make_directive(**{key: value}))
 
 
+def parse_args(args):
+    if not isinstance(args, (list, tuple)):
+        args = [args]
+    if not len(args) == 1:
+        return args
+
+    stack, components = [], []
+    for arg in args:
+        for c in arg:
+            if c == ' ':
+                components.append(''.join(stack))
+                stack.clear()
+            else:
+                stack.append(c)
+    components.append(''.join(stack))
+
+    return components
+
+
 def parse_cli_config(argv=None):
     p, top_d, idx = [], make_directive(), 0
     argv = tuple(argv or sys.argv[1:])
@@ -54,7 +73,7 @@ def parse_cli_config(argv=None):
 
             if not argv[idx + 1].startswith('--'):
                 idx += 1
-                insert_into(top_d, p, [argv[idx]], 'args')
+                insert_into(top_d, p, parse_args(argv[idx]), 'args')
 
             p.append(-1)
 
@@ -67,7 +86,7 @@ def parse_cli_config(argv=None):
                 arg = arg.lstrip('--')
             else:
                 key = 'args'
-                arg = [arg]
+                arg = parse_args(arg)
             insert_into(top_d, p, arg, key)
         idx += 1
     if p:
