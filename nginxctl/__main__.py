@@ -2,16 +2,12 @@
 
 import argparse
 import os
-import sys
 from argparse import ArgumentParser
 from enum import Enum
-from functools import reduce
 from shutil import which
 
-from boltons.iterutils import remap
-
 from nginxctl import __version__
-from nginxctl.helpers import it_consumes, pp, strings
+from nginxctl.helpers import it_consumes, pp, strings, unquoted_str
 from nginxctl.pkg_utils import PythonPackageInfo
 
 
@@ -34,9 +30,6 @@ class ReadableDir(argparse.Action):
                 raise argparse.ArgumentTypeError("{!r} is not a readable dir".format(prospective_dir))
 
         return it_consumes(map(is_dir_readable, values))
-
-
-unquoted_str = lambda arg: arg.translate(str.maketrans(dict.fromkeys('\'"', '')))
 
 
 def _build_parser():
@@ -98,77 +91,6 @@ def _build_parser():
     return parser
 
 
-def make_directive(args=None, directive=None, block=None, line=None, level=None):
-    return {
-        'args': args or [],
-        'directive': directive or None,
-        'block': block or [],
-        'line': line or None
-    }
-
-
-def get_nested_dict(obj, path):
-    return reduce(lambda o, n: o['block'][n], path, obj)
-
-
-def get_nested_list(obj, path):  # assert len(path) > 0
-    return reduce(lambda o, n: o[n]['block'], path, obj['block'])
-
-
-def insert_into(obj, path, value, key):
-    block = get_nested_list(obj, path[:-1])
-    try:
-        directive = block[path[-1]]
-    except IndexError:
-        block.append(make_directive(**{key: value}))
-        return
-    if not directive[key]:
-        directive[key] = value
-    else:
-        block.append(make_directive(**{key: value}))
-
-
-def main(argv=None):
-    p, top_d, idx, last_idx = [], make_directive(), 0, 0
-    argv = tuple(argv or sys.argv[1:])
-
-    while idx < len(argv):
-        arg = argv[idx]
-        if arg == '-{':
-            p.append(-1)
-
-        elif arg in frozenset(('-b', '--block')):
-            idx += 1
-            arg = argv[idx]
-            if idx == 1:
-                top_d['directive'] = arg.lstrip('--')
-            else:
-                insert_into(top_d, p, arg.lstrip('--'), 'directive')
-
-            if not argv[idx + 1].startswith('--'):
-                idx += 1
-                insert_into(top_d, p, [argv[idx]], 'args')
-
-            p.append(-1)
-
-        elif arg == '-}':
-            p.pop(-1)
-
-        else:
-            if arg.startswith('--'):
-                key = 'directive'
-                arg = arg.lstrip('--')
-            else:
-                key = 'args'
-                arg = [arg]
-            insert_into(top_d, p, arg, key)
-        idx += 1
-    if p:
-        raise argparse.ArgumentTypeError('Imbalanced {}')
-
-    return remap(top_d, visit=lambda p, k, v: v != [] and k != '_level')
-
-
 def add_update_support_cli_args(arg, parser, supported_fields_f):
     supported_fields = supported_fields_f()
     dest = unquoted_str(arg).lstrip('-')
@@ -181,7 +103,7 @@ def add_update_support_cli_args(arg, parser, supported_fields_f):
 
 
 if __name__ == '__main__':
-    r = main()
+    r = ()
     print('main')
     pp(r)
     # Popen([which('bash'), '-c', "while true; do echo 'foo'; sleep 2s; done"])
@@ -195,4 +117,4 @@ if __name__ == '__main__2':
 
     # pp({'nginx': nginx, 'ctl': ctl})
 
-__all__ = ['_build_parser', 'main']
+__all__ = ['_build_parser']

@@ -1,10 +1,12 @@
-import string
 from collections import deque
 from itertools import islice
 from pprint import PrettyPrinter
+from string import printable
+
+pp = PrettyPrinter(indent=4).pprint
 
 it_consumes = lambda it, n=None: deque(it, maxlen=0) if n is None else next(islice(it, n, n), None)
-pp = PrettyPrinter(indent=4).pprint
+unquoted_str = lambda arg: arg.translate(str.maketrans(dict.fromkeys('\'"', '')))
 
 
 def update_d(d, arg=None, **kwargs):
@@ -86,7 +88,7 @@ def strings(filename, minimum=4):
     with open(filename, errors='ignore') as f:
         result = ''
         for c in f.read():
-            if c in string.printable:
+            if c in printable:
                 result += c
                 continue
             if len(result) >= minimum:
