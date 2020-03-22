@@ -2,12 +2,16 @@
 
 import argparse
 import os
+import sys
 from argparse import ArgumentParser
 from enum import Enum
 from shutil import which
 
+import crossplane
+
 from nginxctl import __version__
 from nginxctl.helpers import it_consumes, pp, strings, unquoted_str
+from nginxctl.parser import parse_cli_config
 from nginxctl.pkg_utils import PythonPackageInfo
 
 
@@ -35,7 +39,7 @@ class ReadableDir(argparse.Action):
 def _build_parser():
     if 'GITHUB_ACTION' in os.environ:
         default_nginx, default_prefix, default_conf = (
-            '/usr/local/bin/nginx', '/usr/local/Cellar/nginx/1.17.9/', '/usr/local/etc/nginx/nginx.conf'
+            '/usr/local/bin/nginx', '/etc/nginx/', '/etc/nginx/nginx.conf'
         )
     else:
         default_nginx = which('nginx')
@@ -67,7 +71,7 @@ def _build_parser():
                         help='Name of file. Placed in prefix folder—e.g., {!r}—if not absolute. E.g., nginx.conf'.format(
                             default_nginx),
                         default=default_nginx)
-    parser.add_argument('--root', help='Root', nargs='*',
+    parser.add_argument('--root', help=argparse.SUPPRESS, nargs='*',
                         type=unquoted_str, action=ReadableDir, default=os.getcwd())
     parser.add_argument('--nginx',
                         help='Path to nginx binary, defaults to first in PATH, i.e., {!r}'.format(default_nginx),
@@ -104,18 +108,74 @@ def add_update_support_cli_args(arg, parser, supported_fields_f):
     return supported_fields_f()
 
 
-if __name__ == '__main__':
-    r = ()
-    print('main')
-    pp(r)
-    # Popen([which('bash'), '-c', "while true; do echo 'foo'; sleep 2s; done"])
+# if __name__ == '__main__':
+#     r = ()
+#     print('main')
+#     pp(r)
+#     # Popen([which('bash'), '-c', "while true; do echo 'foo'; sleep 2s; done"])
 
-if __name__ == '__main__2':
-    nginx, ctl = {}, {}
-    it_consumes(nginx.update({k: v}) if k in frozenset(('?', 'V', 't', 'T', 'q', 's', 'c', 'g'))
-                else ctl.update({k: v})
-                for k, v in vars(_build_parser().parse_args()).items())
-    pp(ctl)
+j = {
+    "file": "/tmp/wwwroot/server.conf",
+    "status": "ok",
+    "errors": [],
+    "parsed": [
+        {
+            "directive": "server",
+            "line": 1,
+            "args": [],
+            "block": [
+                {
+                    "directive": "server_name",
+                    "line": 2,
+                    "args": [
+                        "localhost"
+                    ]
+                },
+                {
+                    "directive": "listen",
+                    "line": 3,
+                    "args": [
+                        "8080"
+                    ]
+                },
+                {
+                    "directive": "location",
+                    "line": 5,
+                    "args": [
+                        "/"
+                    ],
+                    "block": [
+                        {
+                            "directive": "root",
+                            "line": 6,
+                            "args": [
+                                "/tmp/wwwroot"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+
+if __name__ == '__main__':
+    parser = _build_parser()
+    known, unknown = parser.parse_known_args()
+    print('known:\t\t', known, ';',
+          '\nunknown:\t', unknown, ';',
+          '\nsys.argv:\t')
+
+    config = parse_cli_config(sys.argv[1:])
+    pp(config)
+
+    print(crossplane.build([config]))
+
+    # nginx, ctl = {}, {}
+    # it_consumes(nginx.update({k: v}) if k in frozenset(('?', 'V', 't', 'T', 'q', 's', 'c', 'g'))
+    #            else ctl.update({k: v})
+    #            for k, v in vars(_build_parser().parse_args()).items())
+    # pp(ctl)
 
     # pp({'nginx': nginx, 'ctl': ctl})
 
