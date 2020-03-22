@@ -8,6 +8,8 @@ from enum import Enum
 from functools import reduce
 from shutil import which
 
+from boltons.iterutils import remap
+
 from nginxctl import __version__
 from nginxctl.helpers import it_consumes, pp, strings
 from nginxctl.pkg_utils import PythonPackageInfo
@@ -139,9 +141,9 @@ def main(argv=None):
             idx += 1
             arg = argv[idx]
             if idx == 1:
-                top_d['directive'] = arg
+                top_d['directive'] = arg.lstrip('--')
             else:
-                insert_into(top_d, p, arg, 'directive')
+                insert_into(top_d, p, arg.lstrip('--'), 'directive')
 
             if not argv[idx + 1].startswith('--'):
                 idx += 1
@@ -155,6 +157,7 @@ def main(argv=None):
         else:
             if arg.startswith('--'):
                 key = 'directive'
+                arg = arg.lstrip('--')
             else:
                 key = 'args'
                 arg = [arg]
@@ -162,17 +165,8 @@ def main(argv=None):
         idx += 1
     if p:
         raise argparse.ArgumentTypeError('Imbalanced {}')
-    return top_d
 
-
-"""
-# return whole
-return remap(tuple((e
-                    for elements in whole
-                    for elem in elements
-                    for e in elem)),
-             visit=lambda p, k, v: v != [] and k != '_level')
-"""
+    return remap(top_d, visit=lambda p, k, v: v != [] and k != '_level')
 
 
 def add_update_support_cli_args(arg, parser, supported_fields_f):
