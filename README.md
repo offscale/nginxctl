@@ -1,6 +1,7 @@
 nginxctl
 ========
-![Python version range](https://img.shields.io/badge/python-2.7%E2%80%933.6+-blue.svg) ![Python package](https://github.com/offscale/nginxctl/workflows/Python%20package/badge.svg)
+![Python version range](https://img.shields.io/badge/python-2.7%E2%80%933.6+-blue.svg)
+![Python lint & test](https://github.com/offscale/nginxctl/workflows/Python%20lint%20&%20test/badge.svg)
 
 Commands for modifying and controlling nginx over the command-line.
 
