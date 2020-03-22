@@ -29,11 +29,11 @@ class PythonPackageInfo(object):
 
         setup_call = next(sym.value
                           for sym in main_body[::-1]
-                          if isinstance(sym, ast.Expr)
-                          and isinstance(sym.value, ast.Call)
-                          and sym.value.func.id in frozenset(('setup',
-                                                              'distutils.core.setup',
-                                                              'setuptools.setup')))
+                          if isinstance(sym, ast.Expr) and all((isinstance(sym.value, ast.Call),
+                                                                sym.value.func.id in frozenset(('setup',
+                                                                                                'distutils.core.setup',
+                                                                                                'setuptools.setup')))
+                                                               ))
 
         package_name = next(keyword
                             for keyword in setup_call.keywords
@@ -47,15 +47,13 @@ class PythonPackageInfo(object):
         elif isinstance(package_name.value, ast.Name):
             return next(sym.value.s
                         for sym in main_body
-                        if isinstance(sym, ast.Assign)
-                        and isinstance(sym.value, ast.Str)
-                        and any(target.id == package_name.value.id
-                                for target in sym.targets)
-                        )
+                        if isinstance(sym, ast.Assign) and all((isinstance(sym.value, ast.Str),
+                                                                any(target.id == package_name.value.id
+                                                                    for target in sym.targets))))
 
         else:
-            raise NotImplemented('Package name extraction only built for raw strings and '
-                                 'variables in the same function that setup() is called')
+            raise NotImplementedError('Package name extraction only built for raw strings and '
+                                      'variables in the same function that setup() is called')
 
     # Originally https://stackoverflow.com/a/56032725
     def get_app_name(self) -> str:

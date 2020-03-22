@@ -34,7 +34,9 @@ class ReadableDir(argparse.Action):
 
 def _build_parser():
     if 'GITHUB_ACTION' in os.environ:
-        default_nginx, default_prefix, default_conf = '/usr/local/bin/nginx', '/usr/local/Cellar/nginx/1.17.9/', '/usr/local/etc/nginx/nginx.conf'
+        default_nginx, default_prefix, default_conf = (
+            '/usr/local/bin/nginx', '/usr/local/Cellar/nginx/1.17.9/', '/usr/local/etc/nginx/nginx.conf'
+        )
     else:
         default_nginx = which('nginx')
         default_nginx_usage = next(line

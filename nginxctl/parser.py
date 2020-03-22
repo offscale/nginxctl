@@ -36,7 +36,7 @@ def insert_into(obj, path, value, key):
 
 
 def parse_cli_config(argv=None):
-    p, top_d, idx, last_idx = [], make_directive(), 0, 0
+    p, top_d, idx = [], make_directive(), 0
     argv = tuple(argv or sys.argv[1:])
 
     while idx < len(argv):

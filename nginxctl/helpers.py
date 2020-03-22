@@ -46,7 +46,7 @@ def is_directive(obj):
 
 
 def upsert_block():
-    raise NotImplemented()
+    raise NotImplementedError()
 
 
 def replace_attr(block, attr_name, new_attr):
