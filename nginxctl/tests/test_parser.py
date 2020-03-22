@@ -144,8 +144,8 @@ class TestParser(TestCase):
         # pp(crossplane.parse(self.nginx_conf_join('server.conf')))
         # pp(output)
         # print(crossplane.build([output]))
-        nginx_conf_server = crossplane.parse(self.nginx_conf_join('server.conf'),
-                                             catch_errors=False, comments=False)
+        # nginx_conf_server = crossplane.parse(self.nginx_conf_join('server.conf'),
+        #                                      catch_errors=False, comments=False)
         # print('nginx_conf_server:', nginx_conf_server, ';')
         with open(self.nginx_conf_join('server.conf')) as f:
             server_conf = f.read()
