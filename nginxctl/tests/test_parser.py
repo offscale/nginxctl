@@ -21,9 +21,6 @@ class TestParser(TestCase):
 
     def setUp(self):
         app_name = PythonPackageInfo().get_app_name()
-        print('TestParser::setUp::app_name:', app_name, ';')
-        print('TestParser::setUp::resource_filename(app_name, \'__init__.py\'):',
-              resource_filename(app_name, '__init__.py'), ';')
         self.nginx_conf_join = partial(path.join, path.join(
             path.dirname(path.join(resource_filename(app_name, '__init__.py'))),
             '_config'
