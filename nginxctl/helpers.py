@@ -2,9 +2,9 @@ from collections import deque
 from itertools import islice
 from pprint import PrettyPrinter
 from string import printable
+from sys import version_info
 
-from six import string_types
-
+string_types = (basestring,) if version_info.major == 2 else (str,)
 pp = PrettyPrinter(indent=4).pprint
 
 it_consumes = lambda it, n=None: deque(it, maxlen=0) if n is None else next(islice(it, n, n), None)
