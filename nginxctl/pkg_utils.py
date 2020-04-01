@@ -1,7 +1,6 @@
 import ast
 import csv
 import inspect
-from contextlib import suppress
 from os import listdir, path
 from sys import version_info
 
@@ -21,6 +20,8 @@ if version_info.major == 2:
 
         def __exit__(self, exc_type, exc_value, traceback):
             return isinstance(exc_value, self.exception)
+else:
+    from contextlib import suppress
 
 
 class PythonPackageInfo(object):
