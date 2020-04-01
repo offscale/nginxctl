@@ -3,8 +3,12 @@ import csv
 import inspect
 from contextlib import suppress
 from os import listdir, path
+from sys import version_info
 
 import pkg_resources
+
+if version_info.major == 2:
+    FileNotFoundError = OSError
 
 
 class PythonPackageInfo(object):
