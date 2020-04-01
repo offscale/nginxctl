@@ -12,14 +12,15 @@ if version_info.major == 2:
         https://stackoverflow.com/a/34113126
         """
 
-        def __init__(self, exception):
-            self.exception = exception
+        def __init__(self, *exception):
+            self.exceptions = exception
 
         def __enter__(self):
             pass
 
         def __exit__(self, exc_type, exc_value, traceback):
-            return isinstance(exc_value, self.exception)
+            return any(isinstance(exc_value, exception)
+                       for exception in self.exceptions)
 
 
     FileNotFoundError = OSError  # noqa: E303
