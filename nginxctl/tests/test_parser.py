@@ -109,13 +109,13 @@ class TestParser(TestCase):
                 'block': [
                     {
                         'args': ['localhost'],
-                        'block': [],
+                        'block': None,
                         'directive': 'server_name',
                         'line': 2
                     },
                     {
                         'args': ['8080'],
-                        'block': [],
+                        'block': None,
                         'directive': 'listen',
                         'line': 3
                     },
@@ -124,7 +124,7 @@ class TestParser(TestCase):
                         'block': [
                             {
                                 'args': ["'/tmp/wwwroot'"],
-                                'block': [],
+                                'block': None,
                                 'directive': 'root',
                                 'line': 6
                             }
