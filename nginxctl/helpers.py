@@ -3,6 +3,8 @@ from itertools import islice
 from pprint import PrettyPrinter
 from string import printable
 
+from six import string_types
+
 pp = PrettyPrinter(indent=4).pprint
 
 it_consumes = lambda it, n=None: deque(it, maxlen=0) if n is None else next(islice(it, n, n), None)
@@ -78,7 +80,7 @@ def get_dict_by_key_val(obj, key, value):
             v = get_dict_by_key_val(val, key, value)
             if v is not None:
                 return v
-    elif isinstance(obj, (str, bytes, int)):
+    elif isinstance(obj, string_types + (bytes, int)):
         pass
     else:
         raise NotImplementedError('get_dict_by_key_val for {!r} {}'.format(type(obj), obj))
