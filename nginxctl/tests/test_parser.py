@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from copy import deepcopy
 from functools import partial
-from os import path
+from os import path, linesep
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase, main as unittest_main
@@ -140,7 +140,7 @@ class TestParser(TestCase):
 
     def test_emit_config(self):
         output = parse_cli_config(['-b', 'server', '--server_name', 'localhost', '--listen', '8080',
-                                   '-b', 'location', '/', '--root', "'/tmp/wwwroot'", '-}', '-}'])
+                                   '-b', 'location', '/', '--root', '/tmp/wwwroot', '-}', '-}'])
         # pp(crossplane.parse(self.nginx_conf_join('server.conf')))
         # pp(output)
         # print(crossplane.build([output]))
@@ -149,7 +149,7 @@ class TestParser(TestCase):
         # print('nginx_conf_server:', nginx_conf_server, ';')
         with open(self.nginx_conf_join('server.conf')) as f:
             server_conf = f.read()
-        self.assertEqual(server_conf, crossplane.build([output]))
+        self.assertEqual(server_conf, crossplane.build([output]) + linesep)
 
 
 parsed_by_crossplane = {
