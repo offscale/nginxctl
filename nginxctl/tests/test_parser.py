@@ -48,9 +48,9 @@ class TestParser(TestCase):
 
         self.assertDictEqual(
             no_line(get_dict_by_key_val(deepcopy(nginx_conf_parse['parsed']), 'directive', 'server_name')),
-            {'directive': 'server_name', 'args': ['localhost']})
+            {u'directive': u'server_name', u'args': [u'localhost']})
         self.assertDictEqual(no_line(get_dict_by_key_val(deepcopy(nginx_conf_parse['parsed']), 'directive', 'listen')),
-                             {'directive': 'listen', 'args': ['80']})
+                             {u'directive': u'listen', u'args': [u'80']})
 
         nginx_conf_parse['parsed'] = remap(
             nginx_conf_parse['parsed'],
@@ -63,9 +63,9 @@ class TestParser(TestCase):
         # pp(nginx_conf_parse['parsed'])
         # print(crossplane.build(self.nginx_conf_parse['config'][0]['parsed']))
         self.assertDictEqual(no_line(get_dict_by_key_val(nginx_conf_parse['parsed'], 'directive', 'server_name')),
-                             {'directive': 'server_name', 'args': ['example.com']})
+                             {u'directive': u'server_name', u'args': [u'example.com']})
         self.assertDictEqual(no_line(get_dict_by_key_val(nginx_conf_parse['parsed'], 'directive', 'listen')),
-                             {'directive': 'listen', 'args': ['8080']})
+                             {u'directive': u'listen', u'args': [u'8080']})
 
     def test_add_include_directive(self):
         if path.isfile(self.tmp_nginx_conf_fname):
@@ -105,36 +105,36 @@ class TestParser(TestCase):
         self.assertDictEqual(
             output,
             {
-                'args': [],
-                'block': [
+                u'args': [],
+                u'block': [
                     {
-                        'args': ['localhost'],
-                        'block': None,
-                        'directive': 'server_name',
-                        'line': 2
+                        u'args': [u'localhost'],
+                        u'block': None,
+                        u'directive': u'server_name',
+                        u'line': 2
                     },
                     {
-                        'args': ['8080'],
-                        'block': None,
-                        'directive': 'listen',
-                        'line': 3
+                        u'args': [u'8080'],
+                        u'block': None,
+                        u'directive': u'listen',
+                        u'line': 3
                     },
                     {
-                        'args': ['/'],
-                        'block': [
+                        u'args': [u'/'],
+                        u'block': [
                             {
-                                'args': ["'/tmp/wwwroot'"],
-                                'block': None,
-                                'directive': 'root',
-                                'line': 6
+                                u'args': [u"'/tmp/wwwroot'"],
+                                u'block': None,
+                                u'directive': u'root',
+                                u'line': 6
                             }
                         ],
-                        'directive': 'location',
-                        'line': 5
+                        u'directive': u'location',
+                        u'line': 5
                     }
                 ],
-                'directive': 'server',
-                'line': 1
+                u'directive': u'server',
+                u'line': 1
             }
         )
 
