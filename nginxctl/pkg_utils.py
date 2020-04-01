@@ -79,7 +79,7 @@ class PythonPackageInfo(object):
     def get_app_name(self):
         # Iterate through all installed packages and try to find one that has the app's file in it
         app_def_path = inspect.getfile(self.__class__)
-        with suppress(FileNotFoundError):
+        with suppress(FileNotFoundError, KeyError):
             return next((dist.project_name
                          for dist in pkg_resources.working_set
                          if any(app_def_path == path.normpath(path.join(dist.location, r[0]))
