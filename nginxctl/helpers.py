@@ -4,7 +4,7 @@ from pprint import PrettyPrinter
 from string import printable
 from sys import version_info
 
-string_types = (basestring,) if version_info.major == 2 else (str,)
+string_types = (basestring,) if version_info.major == 2 else (str,)  # noqa: F821
 pp = PrettyPrinter(indent=4).pprint
 
 it_consumes = lambda it, n=None: deque(it, maxlen=0) if n is None else next(islice(it, n, n), None)
