@@ -5,14 +5,21 @@ import os
 import sys
 from argparse import ArgumentParser
 from enum import Enum
-from shutil import which
+from functools import partial
+from itertools import chain
+from shutil import which, copy
+from subprocess import Popen
+from tempfile import mkdtemp
 
 import crossplane
+from pkg_resources import resource_filename
 
-from nginxctl import __version__
+from nginxctl import __version__, get_logger
 from nginxctl.helpers import it_consumes, pp, strings, unquoted_str
 from nginxctl.parser import parse_cli_config
 from nginxctl.pkg_utils import PythonPackageInfo
+
+logger = get_logger(sys.modules[__name__].__name__)
 
 
 class Command(Enum):
@@ -58,7 +65,7 @@ def _build_parser():
         epilog='Example usage: %(prog)s -w \'/tmp/wwwroot\' -p 8080 -i \'192.168.2.1\' '
                '-w \'/mnt/webroot\' -p 9001 -i \'localhost\' --path \'/api\' --proxy-pass  \'192.168.2.1/api\''
     )
-    # parser.add_argument('command', help='serve, emit, or dry_run', type=Command, choices=list(Command))
+    parser.add_argument('command', help='serve, emit, or dry_run', type=Command, choices=list(Command))
 
     parser.add_argument('--version', action='version', version='%(prog)s {}'.format(__version__))
 
@@ -67,10 +74,6 @@ def _build_parser():
     parser.add_argument('--listen', help='Listen (e.g., port)', default='8080', nargs='*')
     parser.add_argument('--prefix', help='set prefix path, e.g., {!r}'.format(default_prefix),
                         default=default_prefix)
-    parser.add_argument('--config-filename',
-                        help='Name of file. Placed in prefix folder—e.g., {!r}—if not absolute. E.g., nginx.conf'.format(
-                            default_nginx),
-                        default=default_nginx)
     parser.add_argument('--root', help=argparse.SUPPRESS, nargs='*',
                         type=unquoted_str, action=ReadableDir, default=os.getcwd())
     parser.add_argument('--nginx',
@@ -86,7 +89,10 @@ def _build_parser():
     parser.add_argument('-q', help=argparse.SUPPRESS)  # suppress non-error messages during configuration testing
     parser.add_argument('-s', help=argparse.SUPPRESS)  # send signal to a master process: stop, quit, reopen, reload
     # parser.add_argument('-p', help=argparse.SUPPRESS)  # set prefix path (default: /etc/nginx/)
-    parser.add_argument('-c', help=argparse.SUPPRESS)  # set configuration file (default: /etc/nginx/nginx.conf)
+    parser.add_argument('-c', '--config',
+                        help='Name of file. Placed in prefix folder—e.g., {!r}—if not absolute.'
+                             ' E.g., nginx.conf'.format(default_nginx),
+                        default=default_conf)  # set configuration file (default: /etc/nginx/nginx.conf)
     parser.add_argument('-g', help=argparse.SUPPRESS)  # set global directives out of configuration file
 
     # Craziness
@@ -94,7 +100,15 @@ def _build_parser():
                         dest='open_paren', nargs='*')
     parser.add_argument('-}', help='Ending parentheses (lower hierarchy)', dest='close_paren', nargs='*')
 
-    return parser
+    return frozenset(
+        ('listen', 'root', 'block',
+         'open_paren', 'close_paren',
+         )
+    ), frozenset(
+        ('?', 'T', 'V', 't',
+         'T', 'q', 's',  # 'c',
+         'g')
+    ), parser
 
 
 def add_update_support_cli_args(arg, parser, supported_fields_f):
@@ -108,75 +122,62 @@ def add_update_support_cli_args(arg, parser, supported_fields_f):
     return supported_fields_f()
 
 
-# if __name__ == '__main__':
-#     r = ()
-#     print('main')
-#     pp(r)
-#     # Popen([which('bash'), '-c', "while true; do echo 'foo'; sleep 2s; done"])
-
-j = {
-    "file": "/tmp/wwwroot/server.conf",
-    "status": "ok",
-    "errors": [],
-    "parsed": [
-        {
-            "directive": "server",
-            "line": 1,
-            "args": [],
-            "block": [
-                {
-                    "directive": "server_name",
-                    "line": 2,
-                    "args": [
-                        "localhost"
-                    ]
-                },
-                {
-                    "directive": "listen",
-                    "line": 3,
-                    "args": [
-                        "8080"
-                    ]
-                },
-                {
-                    "directive": "location",
-                    "line": 5,
-                    "args": [
-                        "/"
-                    ],
-                    "block": [
-                        {
-                            "directive": "root",
-                            "line": 6,
-                            "args": [
-                                "/tmp/wwwroot"
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
-    ]
-}
-
 if __name__ == '__main__':
-    parser = _build_parser()
+    omit, nginx, parser = _build_parser()
     known, unknown = parser.parse_known_args()
-    print('known:\t\t', known, ';',
-          '\nunknown:\t', unknown, ';',
-          '\nsys.argv:\t')
+    pp({k: v
+        for k, v in known._get_kwargs()
+        if k not in omit | nginx})
 
-    config = parse_cli_config(sys.argv[1:])
-    pp(config)
+    config = parse_cli_config(sys.argv[2:])
+    parsed_config_str = crossplane.build([config]) + os.linesep
 
-    print(crossplane.build([config]))
+    if known.command.value == 'serve':
+        temp_dir = mkdtemp('_nginxctl', 'nginxctl_')
+        logger.debug('temp_dir:\t{!r}'.format(temp_dir))
 
-    # nginx, ctl = {}, {}
-    # it_consumes(nginx.update({k: v}) if k in frozenset(('?', 'V', 't', 'T', 'q', 's', 'c', 'g'))
-    #            else ctl.update({k: v})
-    #            for k, v in vars(_build_parser().parse_args()).items())
-    # pp(ctl)
+        _config_files = 'nginx.conf', 'mime.types'
 
-    # pp({'nginx': nginx, 'ctl': ctl})
+        nginx_conf_join = partial(os.path.join, os.path.join(
+            os.path.dirname(os.path.join(resource_filename(PythonPackageInfo().get_app_name(), '__init__.py'))),
+            '_config'
+        ))
+        config_files = tuple(map(nginx_conf_join, _config_files))
+        it_consumes(map(partial(copy, dst=temp_dir), config_files))
+        sites_available = os.path.join(temp_dir, 'sites-available')
+        os.mkdir(sites_available)
+        server_conf = os.path.join(sites_available, 'server.conf')
+        with open(server_conf, 'wt') as f:
+            f.write(parsed_config_str)
+
+        # Include this config in the new nginx.conf
+        nginx_conf = os.path.join(temp_dir, _config_files[0])
+        nginx_conf_parsed = crossplane.parse(nginx_conf, catch_errors=False, comments=False)
+        nginx_conf_parse = next(config
+                                for config in nginx_conf_parsed['config']
+                                if os.path.basename(config['file']) == 'nginx.conf')
+        nginx_conf_parse['parsed'][-1]['block'].append({
+            'args': [os.path.join(sites_available, '*.conf')],
+            'directive': 'include',
+            'includes': [2],
+            'line': nginx_conf_parse['parsed'][-1]['line'] + 2
+        })
+        # print('nginx_conf_parse:', nginx_conf_parse, ';')
+        config_str = crossplane.build(nginx_conf_parse['parsed'])
+
+        os.remove(nginx_conf)
+        with open(nginx_conf, 'wt') as f:
+            f.write(config_str + os.linesep)
+
+        Popen([known.nginx,
+               '-c', config_files[0]] + list(chain.from_iterable(('-{}'.format(k), v)
+                                                                 for k, v in known._get_kwargs()
+                                                                 if k in nginx and v and k != 'c')))
+        # os.remove(server_conf)
+        # os.rmdir(sites_available)
+        # it_consumes(os.remove, config_files)
+        # os.rmdir(temp_dir)
+    else:
+        raise NotImplementedError(known.command)
 
 __all__ = ['_build_parser']

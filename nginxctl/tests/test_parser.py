@@ -141,54 +141,10 @@ class TestParser(TestCase):
     def test_emit_config(self):
         output = parse_cli_config(['-b', 'server', '--server_name', 'localhost', '--listen', '8080',
                                    '-b', 'location', '/', '--root', '/tmp/wwwroot', '-}', '-}'])
-        # pp(crossplane.parse(self.nginx_conf_join('server.conf')))
-        # pp(output)
-        # print(crossplane.build([output]))
-        # nginx_conf_server = crossplane.parse(self.nginx_conf_join('server.conf'),
-        #                                      catch_errors=False, comments=False)
-        # print('nginx_conf_server:', nginx_conf_server, ';')
         with open(self.nginx_conf_join('server.conf')) as f:
             server_conf = f.read()
         self.assertEqual(server_conf, crossplane.build([output]) + linesep)
 
-
-parsed_by_crossplane = {
-    "directive": "server",
-    "line": 1,
-    "args": [],
-    "block": [
-        {
-            "directive": "server_name",
-            "line": 2,
-            "args": [
-                "localhost"
-            ]
-        },
-        {
-            "directive": "listen",
-            "line": 3,
-            "args": [
-                "8080"
-            ]
-        },
-        {
-            "directive": "location",
-            "line": 5,
-            "args": [
-                "/"
-            ],
-            "block": [
-                {
-                    "directive": "root",
-                    "line": 6,
-                    "args": [
-                        "/tmp/wwwroot"
-                    ]
-                }
-            ]
-        }
-    ]
-}
 
 if __name__ == '__main__':
     unittest_main()
