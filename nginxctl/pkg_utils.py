@@ -11,6 +11,18 @@ if version_info.major == 2:
     FileNotFoundError = OSError
 
 
+    # https://stackoverflow.com/a/34113126
+    class suppress:
+        def __init__(self, exception):
+            self.exception = exception
+
+        def __enter__(self):
+            pass
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return isinstance(exc_value, self.exception)
+
+
 class PythonPackageInfo(object):
     @staticmethod
     def get_first_setup_py(cur_dir):
