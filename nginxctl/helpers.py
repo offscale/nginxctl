@@ -17,7 +17,7 @@ def update_d(d, arg=None, **kwargs):
     return d
 
 
-def del_keys_d(d, *keys, key=None, ignore_errors=True):
+def del_keys_d(d, key=None, ignore_errors=True, *keys):
     remove = (d.__delitem__ if key in d else lambda i: i) if ignore_errors else d.__delitem__
     for key in keys:
         remove(key)

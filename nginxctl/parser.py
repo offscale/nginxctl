@@ -6,7 +6,7 @@ from itertools import count
 from boltons.iterutils import remap
 
 
-def make_directive(args=None, directive=None, block=None, line=None, level=None):
+def make_directive(args=None, directive=None, block=None, line=None):
     return {
         'args': args or [],
         'directive': directive or None,
@@ -98,7 +98,7 @@ def parse_cli_config(argv=None):
     if p:
         raise argparse.ArgumentTypeError('Imbalanced {}')
 
-    return remap(top_d, visit=lambda p, k, v: (k, None if k == 'block' and not v else v))
+    return remap(top_d, visit=lambda _, k, v: (k, None if k == 'block' and not v else v))
 
 
 __all__ = ['parse_cli_config']

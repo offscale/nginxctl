@@ -56,7 +56,7 @@ class PythonPackageInfo(object):
                                       'variables in the same function that setup() is called')
 
     # Originally https://stackoverflow.com/a/56032725
-    def get_app_name(self) -> str:
+    def get_app_name(self):
         # Iterate through all installed packages and try to find one that has the app's file in it
         app_def_path = inspect.getfile(self.__class__)
         with suppress(FileNotFoundError):
