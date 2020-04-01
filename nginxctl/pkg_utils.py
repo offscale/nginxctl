@@ -7,11 +7,11 @@ from sys import version_info
 import pkg_resources
 
 if version_info.major == 2:
-    FileNotFoundError = OSError
-
-
-    # https://stackoverflow.com/a/34113126
     class suppress:
+        """
+        https://stackoverflow.com/a/34113126
+        """
+
         def __init__(self, exception):
             self.exception = exception
 
@@ -20,6 +20,9 @@ if version_info.major == 2:
 
         def __exit__(self, exc_type, exc_value, traceback):
             return isinstance(exc_value, self.exception)
+
+
+    FileNotFoundError = OSError  # noqa: E303
 else:
     from contextlib import suppress
 
