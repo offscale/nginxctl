@@ -14,6 +14,21 @@ Commands for modifying and controlling nginx over the command-line.
 
     pip install .
 
+## Examples
+
+### Serve local directory and then stop server
+
+    $ python -m nginxctl serve \ 
+                -b 'server' \
+                  --server_name 'localhost' --listen '8080' \
+                  -b location '/' \
+                    --root '/tmp/wwwroot' \
+                  -} \
+                -}
+    $ python -m nginxctl nginx -s stop
+
+---
+
 ## License
 
 Licensed under either of

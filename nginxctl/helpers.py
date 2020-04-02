@@ -1,8 +1,10 @@
 from collections import deque
 from itertools import islice
+from os import fsencode, path
 from pprint import PrettyPrinter
 from string import printable
 from sys import version_info
+from tempfile import _sanitize_params, _get_candidate_names, TMP_MAX
 
 string_types = (basestring,) if version_info.major == 2 else (str,)  # noqa: F821
 pp = PrettyPrinter(indent=4).pprint
@@ -98,3 +100,27 @@ def strings(filename, minimum=4):
             result = ''
         if len(result) >= minimum:  # catch result at EOF
             yield result
+
+
+# From stdlib
+def gettemp(suffix=None, prefix=None, dir=None):
+    """User-callable function to create and return a unique temporary
+    directory.  The return value is the pathname of the directory.
+
+    Arguments are as for mkstemp, except that the 'text' argument is
+    not accepted.
+
+    The directory is readable, writable, and searchable only by the
+    creating user.
+
+    Caller is responsible for deleting the directory when done with it.
+    """
+
+    prefix, suffix, dir, output_type = _sanitize_params(prefix, suffix, dir)
+
+    names = _get_candidate_names()
+    if output_type is bytes:
+        names = map(fsencode, names)
+
+    for seq in range(TMP_MAX):
+        return path.join(dir, prefix + next(names) + suffix)
