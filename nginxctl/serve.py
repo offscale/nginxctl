@@ -11,7 +11,7 @@ from nginxctl import get_logger
 from nginxctl.helpers import it_consumes
 from nginxctl.pkg_utils import PythonPackageInfo
 
-logger = get_logger(modules[__name__].__name__)
+logger = get_logger(':'.join((PythonPackageInfo().get_app_name(), modules[__name__].__name__)))
 
 
 def serve(known, nginx_command, parsed_config_str):
@@ -70,7 +70,9 @@ def serve(known, nginx_command, parsed_config_str):
     os.remove(nginx_conf)
     with open(nginx_conf, 'wt') as f:
         f.write(config_str + os.linesep)
-    Popen([known.nginx, '-c', config_files[0]] + nginx_command)
+    # logger.error
+    print('nginx is running. Stop with: {}'.format(' '.join((known.nginx, '-c', nginx_conf, '-s', 'stop'))))
+    Popen([known.nginx, '-c', nginx_conf] + nginx_command)
     # os.remove(server_conf)
     # os.rmdir(sites_available)
     # it_consumes(os.remove, config_files)

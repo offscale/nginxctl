@@ -13,7 +13,7 @@ from subprocess import Popen
 import crossplane
 
 from nginxctl import __version__, get_logger
-from nginxctl.helpers import it_consumes, pp, strings, unquoted_str, gettemp
+from nginxctl.helpers import it_consumes, strings, unquoted_str, gettemp
 from nginxctl.parser import parse_cli_config
 from nginxctl.pkg_utils import PythonPackageInfo
 from nginxctl.serve import serve
@@ -110,7 +110,7 @@ def _build_parser():
         ('?', 'T', 'V', 't',
          'T', 'q', 's',  # 'c',
          'g')
-    ), parser
+    ), parser, default_conf
 
 
 def add_update_support_cli_args(arg, parser, supported_fields_f):
@@ -125,15 +125,17 @@ def add_update_support_cli_args(arg, parser, supported_fields_f):
 
 
 def main():
-    omit, nginx, parser = _build_parser()
+    omit, nginx, parser, default_conf = _build_parser()
     known, unknown = parser.parse_known_args()
     nginx_command = list(chain.from_iterable(('-{}'.format(k), v)
                                              for k, v in known._get_kwargs()
                                              if k in nginx and v and k != 'c'))
     omit_nginx = omit | nginx
+    '''
     pp({k: v
         for k, v in known._get_kwargs()
         if k not in omit_nginx})
+    '''
 
     if known.command.value != 'nginx':
         fs = frozenset(map(lambda s: '--{}'.format(s),
@@ -149,7 +151,9 @@ def main():
         else:
             raise NotImplementedError(known.command)
     else:
-        Popen([known.nginx] + nginx_command)
+        Popen([known.nginx, '-c',
+               os.path.join(known.temp_dir, 'nginx.conf')
+               if known.config == default_conf else known.config] + nginx_command)
 
 
 if __name__ == '__main__':

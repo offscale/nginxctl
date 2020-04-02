@@ -18,14 +18,18 @@ Commands for modifying and controlling nginx over the command-line.
 
 ### Serve local directory and then stop server
 
-    $ python -m nginxctl serve \ 
+    $ python -m nginxctl serve --temp_dir '/tmp' \ 
                 -b 'server' \
                   --server_name 'localhost' --listen '8080' \
                   -b location '/' \
                     --root '/tmp/wwwroot' \
                   -} \
                 -}
-    $ python -m nginxctl nginx -s stop
+    nginx is running. Stop with: /usr/local/bin/nginx -c /tmp/nginx.conf -s stop
+    $ curl -Is http://localhost:8080 | head -n1
+    127.0.0.1 - - [03/Apr/2020:01:21:45 +1100] "HEAD / HTTP/1.1" 200 0 "-" "curl/7.64.1"
+    HTTP/1.1 200 OK
+    $ python -m nginxctl nginx --temp_dir '/tmp' -s stop
 
 ---
 
