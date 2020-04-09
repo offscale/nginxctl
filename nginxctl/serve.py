@@ -1,20 +1,22 @@
 import os
 from functools import partial
+from itertools import count
 from shutil import copy
 from subprocess import Popen
 from sys import modules
 
 import crossplane
+from boltons.iterutils import research
 from pkg_resources import resource_filename
 
 from nginxctl import get_logger
-from nginxctl.helpers import it_consumes
+from nginxctl.helpers import it_consumes, pp, is_directive
 from nginxctl.pkg_utils import PythonPackageInfo
 
 logger = get_logger(':'.join((PythonPackageInfo().get_app_name(), modules[__name__].__name__)))
 
 
-def serve(known, nginx_command, parsed_config_str):
+def serve(known, nginx_command, parsed_config, parsed_config_str):
     if not os.path.isdir(known.temp_dir):
         os.mkdir(known.temp_dir)
     logger.debug('temp_dir:\t{!r}'.format(known.temp_dir))
@@ -29,6 +31,11 @@ def serve(known, nginx_command, parsed_config_str):
     if not os.path.isdir(sites_available):
         os.mkdir(sites_available)
     server_conf = os.path.join(sites_available, 'server.conf')
+    pp(parsed_config)
+    pp(research(parsed_config,
+                query=lambda p, k, v: is_directive(v) and
+                                      print('k:', k, ';\nv:', v, ';')))
+    # pp(research(parsed_config, query=lambda p, k, v: is_directive(v)))
     with open(server_conf, 'wt') as f:
         f.write(parsed_config_str)
     # Include this config in the new nginx.conf
@@ -38,10 +45,7 @@ def serve(known, nginx_command, parsed_config_str):
                             for config in nginx_conf_parsed['config']
                             if os.path.basename(config['file']) == 'nginx.conf')
 
-    # daemon off;
-    # error_log stderr warn;
-    # access_log /dev/stdout;
-    a = []
+    line = count(nginx_conf_parse['parsed'][-1]['block'][-1]['line'])
     del nginx_conf_parse['parsed'][-1]['block'][-1]
     nginx_conf_parse['parsed'].insert(1, {
         'args': ['off'],
@@ -51,21 +55,20 @@ def serve(known, nginx_command, parsed_config_str):
         {
             'args': ['stderr', 'warn'],
             'directive': 'error_log',
-            'line': nginx_conf_parse['parsed'][-1]['line'] + 4
+            'line': next(line)
         },
         {
             'args': ['/dev/stdout'],
             'directive': 'access_log',
-            'line': nginx_conf_parse['parsed'][-1]['line'] + 4
+            'line': next(line)
         },
         {
             'args': [os.path.join(sites_available, '*.conf')],
             'directive': 'include',
             'includes': [2],
-            'line': nginx_conf_parse['parsed'][-1]['line'] + 5
+            'line': next(line)
         }
     ]
-    # print('nginx_conf_parse:', nginx_conf_parse, ';')
     config_str = crossplane.build(nginx_conf_parse['parsed'])
     os.remove(nginx_conf)
     with open(nginx_conf, 'wt') as f:

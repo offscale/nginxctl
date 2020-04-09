@@ -78,8 +78,8 @@ class PythonPackageInfo(object):
 
     # Originally https://stackoverflow.com/a/56032725
     def get_app_name(self):
-        if version_info.major == 2:
-            return 'nginxctl'  # TODO: Fix this for Python 2.7… or just drop support for that old version
+        # if version_info.major == 2:
+        #     return 'nginxctl'  # TODO: Fix this for Python 2.7… or just drop support for that old version
 
         # Iterate through all installed packages and try to find one that has the app's file in it
         app_def_path = inspect.getfile(self.__class__)

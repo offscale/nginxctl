@@ -50,3 +50,8 @@ Implement Concept 1, then build a CLI macro system that passes along parameters 
 ## Disadvantages
 
   - Complexity of implementation
+
+---
+
+Rollbacks being a big selling point
+

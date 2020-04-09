@@ -46,7 +46,9 @@ def update_directive(directive, args, new_directive=None, new_args=None):
 
 
 def is_directive(obj):
-    return isinstance(obj, dict) and obj.keys() == frozenset({'args', 'directive', 'line'})
+    return isinstance(obj, dict) and obj.keys().isdisjoint(
+        frozenset(('args', 'directive', 'block', 'line'))
+    )
 
 
 def upsert_block():
