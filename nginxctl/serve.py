@@ -33,8 +33,7 @@ def serve(known, nginx_command, parsed_config, parsed_config_str):
     server_conf = os.path.join(sites_available, 'server.conf')
     pp(parsed_config)
     pp(research(parsed_config,
-                query=lambda p, k, v: is_directive(v) and
-                                      print('k:', k, ';\nv:', v, ';')))
+                query=lambda p, k, v: is_directive(v) and print('k:', k, ';\nv:', v, ';')))
     # pp(research(parsed_config, query=lambda p, k, v: is_directive(v)))
     with open(server_conf, 'wt') as f:
         f.write(parsed_config_str)
