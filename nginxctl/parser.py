@@ -97,8 +97,6 @@ def parse_cli_config(argv=None):
             else:
                 key = 'args'
                 arg = parse_args(arg)
-            if key == 'directive':
-                print('arg is:', arg, ';')
             insert_into(top_d, p, arg, key, c)
         idx += 1
     if p:

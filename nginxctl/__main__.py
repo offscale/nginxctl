@@ -13,7 +13,7 @@ from subprocess import Popen
 import crossplane
 
 from nginxctl import __version__, get_logger
-from nginxctl.helpers import it_consumes, strings, unquoted_str, gettemp, pp
+from nginxctl.helpers import it_consumes, strings, unquoted_str, gettemp
 from nginxctl.parser import parse_cli_config, cli_to_context2block
 from nginxctl.pkg_utils import PythonPackageInfo
 from nginxctl.serve import serve
@@ -144,7 +144,6 @@ def main():
 
         if context2block['http']:
             parsed_config_http = parse_cli_config(context2block['http'])
-            pp(parsed_config_http)
             parsed_config_http_str = crossplane.build([parsed_config_http]) + os.linesep
         else:
             parsed_config_http = parsed_config_http_str = None
