@@ -96,7 +96,10 @@ def parse_cli_config(argv=None):
                 arg = arg.lstrip('--')
             else:
                 key = 'args'
-                arg = parse_args(arg)
+                if argv[idx - 1] == '--root':  # TODO: Add other paths here
+                    arg = [arg]
+                else:
+                    arg = parse_args(arg)
             insert_into(top_d, p, arg, key, c)
         idx += 1
     if p:
