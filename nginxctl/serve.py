@@ -16,7 +16,7 @@ from nginxctl.pkg_utils import PythonPackageInfo
 logger = get_logger(':'.join((PythonPackageInfo().get_app_name(), modules[__name__].__name__)))
 
 
-def serve(known, nginx_command, parsed_config, parsed_config_str):
+def serve(known, nginx_command, parsed_config, parsed_config_str, parsed_config_http, parsed_config_http_str):
     if not os.path.isdir(known.temp_dir):
         os.mkdir(known.temp_dir)
     logger.debug('temp_dir:\t{!r}'.format(known.temp_dir))
@@ -31,12 +31,16 @@ def serve(known, nginx_command, parsed_config, parsed_config_str):
     if not os.path.isdir(sites_available):
         os.mkdir(sites_available)
     server_conf = os.path.join(sites_available, 'server.conf')
-    pp(parsed_config)
-    pp(research(parsed_config,
-                query=lambda p, k, v: is_directive(v) and print('k:', k, ';\nv:', v, ';')))
+    if parsed_config is not None:
+        pp(parsed_config)
+        pp(research(parsed_config,
+                    query=lambda p, k, v: is_directive(v) and print('k:', k, ';\nv:', v, ';')))
     # pp(research(parsed_config, query=lambda p, k, v: is_directive(v)))
     with open(server_conf, 'wt') as f:
-        f.write(parsed_config_str)
+        if parsed_config_http_str is not None:
+            f.write(parsed_config_http_str)
+        if parsed_config_str is not None:
+            f.write(parsed_config_str)
     # Include this config in the new nginx.conf
     nginx_conf = os.path.join(known.temp_dir, _config_files[0])
     nginx_conf_parsed = crossplane.parse(nginx_conf, catch_errors=False, comments=False)

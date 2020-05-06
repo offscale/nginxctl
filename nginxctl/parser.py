@@ -61,6 +61,7 @@ def parse_cli_config(argv=None):
 
     while idx < len(argv):
         arg = argv[idx]
+
         if arg == '-{':
             p.append(-1)
             next(c)
@@ -74,6 +75,9 @@ def parse_cli_config(argv=None):
                     'directive': arg.lstrip('--'),
                     'line': next(c)
                 })
+                if len(argv) > 2 and argv[3].startswith('--'):
+                    top_d['args'] = parse_args(argv[2])
+                    idx += 1
             else:
                 insert_into(top_d, p, arg.lstrip('--'), 'directive', c)
 
@@ -93,6 +97,8 @@ def parse_cli_config(argv=None):
             else:
                 key = 'args'
                 arg = parse_args(arg)
+            if key == 'directive':
+                print('arg is:', arg, ';')
             insert_into(top_d, p, arg, key, c)
         idx += 1
     if p:
@@ -101,4 +107,30 @@ def parse_cli_config(argv=None):
     return remap(top_d, visit=lambda _, k, v: (k, None if k == 'block' and not v else v))
 
 
-__all__ = ['parse_cli_config']
+def cli_to_context2block(cli_to_parse):
+    context2block = {'http': [], 'server': []}
+    left, left_added, context, stack = 0, 0, None, []
+    for idx, arg in enumerate(cli_to_parse):
+        if arg == '-b':
+            left += 1
+            left_added = idx
+        elif arg == '-}':
+            left -= 1
+        elif left_added == idx - 1 and left == 1:
+            if len(stack) == 0 and idx != 0:
+                stack = [context2block[context][-1].pop()]
+            context = arg if arg == 'server' else 'http'
+            context2block[context].append(stack.copy())
+            stack.clear()
+
+        if context is not None:
+            context2block[context][-1].append(arg)
+        else:
+            stack.append(arg)
+
+    # Flatten. Later on we might want to generate different files, rather than one server.conf &etc. So unflatten then.
+    return {context: [item for sublist in block for item in sublist]
+            for context, block in context2block.items()}
+
+
+__all__ = ['parse_cli_config', 'cli_to_context2block']

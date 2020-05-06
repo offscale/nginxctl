@@ -13,8 +13,8 @@ from subprocess import Popen
 import crossplane
 
 from nginxctl import __version__, get_logger
-from nginxctl.helpers import it_consumes, strings, unquoted_str, gettemp
-from nginxctl.parser import parse_cli_config
+from nginxctl.helpers import it_consumes, strings, unquoted_str, gettemp, pp
+from nginxctl.parser import parse_cli_config, cli_to_context2block
 from nginxctl.pkg_utils import PythonPackageInfo
 from nginxctl.serve import serve
 
@@ -130,17 +130,31 @@ def main():
         fs = frozenset(map(lambda s: '--{}'.format(s),
                            frozenset(map(itemgetter(0), filter(lambda cn: cn[1] is not None,
                                                                known._get_kwargs()))) - omit | nginx))
-        parsed_config = parse_cli_config(
-            tuple(chain.from_iterable((k, v)
-                                      for k, v in zip(*[iter(sys.argv[2:])] * 2)
-                                      if k not in fs)) + (
-                (sys.argv[-1],) if len(sys.argv[2:]) & 1 == 1 else tuple())
-        )
-        parsed_config_str = crossplane.build([parsed_config]) + os.linesep
+        cli_to_parse = tuple(chain.from_iterable((k, v)
+                                                 for k, v in zip(*[iter(sys.argv[2:])] * 2)
+                                                 if k not in fs)) + (
+                           (sys.argv[-1],) if len(sys.argv[2:]) & 1 == 1 else tuple())
+
+        context2block = cli_to_context2block(cli_to_parse)
+        if context2block['server']:
+            parsed_config = parse_cli_config(context2block['server'])
+            parsed_config_str = crossplane.build([parsed_config]) + os.linesep
+        else:
+            parsed_config = parsed_config_str = None
+
+        if context2block['http']:
+            parsed_config_http = parse_cli_config(context2block['http'])
+            pp(parsed_config_http)
+            parsed_config_http_str = crossplane.build([parsed_config_http]) + os.linesep
+        else:
+            parsed_config_http = parsed_config_http_str = None
+
         if known.command.value == 'serve':
-            serve(known, nginx_command, parsed_config, parsed_config_str)
+            serve(known, nginx_command,
+                  parsed_config, parsed_config_str,
+                  parsed_config_http, parsed_config_http_str)
         elif known.command.value == 'upsert':
-            pass
+            raise NotImplementedError(known.command)
         else:
             raise NotImplementedError(known.command)
     else:
