@@ -9,8 +9,12 @@ from tempfile import _sanitize_params, _get_candidate_names, TMP_MAX
 string_types = (basestring,) if version_info.major == 2 else (str,)  # noqa: F821
 pp = PrettyPrinter(indent=4).pprint
 
-it_consumes = lambda it, n=None: deque(it, maxlen=0) if n is None else next(islice(it, n, n), None)
-unquoted_str = lambda arg: arg.translate(str.maketrans(dict.fromkeys('\'"', '')))
+it_consumes = (
+    lambda it, n=None: deque(it, maxlen=0)
+    if n is None
+    else next(islice(it, n, n), None)
+)
+unquoted_str = lambda arg: arg.translate(str.maketrans(dict.fromkeys("'\"", "")))
 
 
 def update_d(d, arg=None, **kwargs):
@@ -22,7 +26,9 @@ def update_d(d, arg=None, **kwargs):
 
 
 def del_keys_d(d, key=None, ignore_errors=True, *keys):
-    remove = (d.__delitem__ if key in d else lambda i: i) if ignore_errors else d.__delitem__
+    remove = (
+        (d.__delitem__ if key in d else lambda i: i) if ignore_errors else d.__delitem__
+    )
     for key in keys:
         remove(key)
     if key is not None:
@@ -36,10 +42,13 @@ def omit(d, no):
 
 def update_directive(directive, args, new_directive=None, new_args=None):
     def visit(p, key, value):
-        if is_directive(value) and omit(value, 'line') == {'directive': directive,
-                                                           'args': args}:
-            value.update({'args': new_args or args,
-                          'directive': new_directive or directive})
+        if is_directive(value) and omit(value, "line") == {
+            "directive": directive,
+            "args": args,
+        }:
+            value.update(
+                {"args": new_args or args, "directive": new_directive or directive}
+            )
         return key, value
 
     return visit
@@ -47,7 +56,7 @@ def update_directive(directive, args, new_directive=None, new_args=None):
 
 def is_directive(obj):
     return isinstance(obj, dict) and obj.keys().isdisjoint(
-        frozenset(('args', 'directive', 'block', 'line'))
+        frozenset(("args", "directive", "block", "line"))
     )
 
 
@@ -66,8 +75,13 @@ def replace_elem_in_attr(block, attr_name, replace, new_attr):
     if attr_name not in block:
         return block
     structure = getattr(block, attr_name)
-    setattr(block, attr_name, type(structure)(new_attr if element == replace else element
-                                              for element in structure))
+    setattr(
+        block,
+        attr_name,
+        type(structure)(
+            new_attr if element == replace else element for element in structure
+        ),
+    )
     return block
 
 
@@ -87,19 +101,21 @@ def get_dict_by_key_val(obj, key, value):
     elif isinstance(obj, string_types + (bytes, int)):
         pass
     else:
-        raise NotImplementedError('get_dict_by_key_val for {!r} {}'.format(type(obj), obj))
+        raise NotImplementedError(
+            "get_dict_by_key_val for {!r} {}".format(type(obj), obj)
+        )
 
 
 def strings(filename, minimum=4):
-    with open(filename, errors='ignore') as f:
-        result = ''
+    with open(filename, errors="ignore") as f:
+        result = ""
         for c in f.read():
             if c in printable:
                 result += c
                 continue
             if len(result) >= minimum:
                 yield result
-            result = ''
+            result = ""
         if len(result) >= minimum:  # catch result at EOF
             yield result
 
