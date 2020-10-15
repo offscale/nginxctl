@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import os
+from collections import deque
 from functools import partial
 from itertools import count
 from shutil import copy
@@ -12,7 +13,7 @@ from boltons.iterutils import research
 from pkg_resources import resource_filename
 
 from nginxctl import get_logger
-from nginxctl.helpers import it_consumes, pp, is_directive
+from nginxctl.helpers import pp, is_directive
 from nginxctl.pkg_utils import PythonPackageInfo
 
 logger = get_logger(
@@ -44,7 +45,7 @@ def serve(
         ),
     )
     config_files = tuple(map(nginx_conf_join, _config_files))
-    it_consumes(map(partial(copy, dst=known.temp_dir), config_files))
+    deque(map(partial(copy, dst=known.temp_dir), config_files), maxlen=0)
     sites_available = os.path.join(known.temp_dir, "sites-available")
     if not os.path.isdir(sites_available):
         os.mkdir(sites_available)
@@ -99,5 +100,5 @@ def serve(
     Popen([known.nginx, "-c", nginx_conf] + nginx_command)
     # os.remove(server_conf)
     # os.rmdir(sites_available)
-    # it_consumes(os.remove, config_files)
+    # deque(os.remove, config_files)
     # os.rmdir(temp_dir)

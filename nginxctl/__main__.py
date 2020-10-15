@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 from argparse import ArgumentParser
+from collections import deque
 from enum import Enum
 from itertools import chain
 from operator import itemgetter
@@ -13,7 +14,12 @@ from subprocess import Popen
 import crossplane
 
 from nginxctl import __version__, get_logger
-from nginxctl.helpers import it_consumes, strings, unquoted_str, gettemp
+from nginxctl.helpers import strings, unquoted_str
+
+if sys.version[0] == "2":
+    from tempfile import mkdtemp as gettemp
+else:
+    from nginxctl.helpers import gettemp
 from nginxctl.parser import parse_cli_config, cli_to_context2block
 from nginxctl.pkg_utils import PythonPackageInfo
 from nginxctl.serve import serve
@@ -45,7 +51,7 @@ class ReadableDir(argparse.Action):
                     "{!r} is not a readable dir".format(prospective_dir)
                 )
 
-        return it_consumes(map(is_dir_readable, values))
+        return deque(map(is_dir_readable, values), maxlen=0)
 
 
 def _build_parser():

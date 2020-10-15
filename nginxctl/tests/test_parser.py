@@ -21,6 +21,8 @@ class TestParser(TestCase):
 
     def setUp(self):
         app_name = PythonPackageInfo().get_app_name()
+
+        assert app_name is not None
         self.nginx_conf_join = partial(
             path.join,
             path.join(

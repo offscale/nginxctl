@@ -1,20 +1,14 @@
-from collections import deque
-from itertools import islice
-from os import fsencode, path
+import sys
 from pprint import PrettyPrinter
 from string import printable
 from sys import version_info
-from tempfile import _sanitize_params, _get_candidate_names, TMP_MAX
 
 string_types = (basestring,) if version_info.major == 2 else (str,)  # noqa: F821
 pp = PrettyPrinter(indent=4).pprint
 
-it_consumes = (
-    lambda it, n=None: deque(it, maxlen=0)
-    if n is None
-    else next(islice(it, n, n), None)
-)
-unquoted_str = lambda arg: arg.translate(str.maketrans(dict.fromkeys("'\"", "")))
+
+def unquoted_str(arg):
+    return arg.translate(str.maketrans(dict.fromkeys("'\"", "")))
 
 
 def update_d(d, arg=None, **kwargs):
@@ -54,8 +48,15 @@ def update_directive(directive, args, new_directive=None, new_args=None):
     return visit
 
 
+def get_keys(o):
+    if sys.version[0] == "3":
+        return o.keys()
+    elif hasattr(o, "iterkeys"):
+        return frozenset(o.iterkeys())
+
+
 def is_directive(obj):
-    return isinstance(obj, dict) and obj.keys().isdisjoint(
+    return isinstance(obj, dict) and get_keys(obj).isdisjoint(
         frozenset(("args", "directive", "block", "line"))
     )
 
@@ -121,24 +122,28 @@ def strings(filename, minimum=4):
 
 
 # From stdlib
-def gettemp(suffix=None, prefix=None, dir=None):
-    """User-callable function to create and return a unique temporary
-    directory.  The return value is the pathname of the directory.
+if sys.version[0] == "3":
+    from os import fsencode, path
+    from tempfile import _sanitize_params, _get_candidate_names, TMP_MAX
 
-    Arguments are as for mkstemp, except that the 'text' argument is
-    not accepted.
+    def gettemp(suffix=None, prefix=None, dir=None):
+        """User-callable function to create and return a unique temporary
+        directory.  The return value is the pathname of the directory.
 
-    The directory is readable, writable, and searchable only by the
-    creating user.
+        Arguments are as for mkstemp, except that the 'text' argument is
+        not accepted.
 
-    Caller is responsible for deleting the directory when done with it.
-    """
+        The directory is readable, writable, and searchable only by the
+        creating user.
 
-    prefix, suffix, dir, output_type = _sanitize_params(prefix, suffix, dir)
+        Caller is responsible for deleting the directory when done with it.
+        """
 
-    names = _get_candidate_names()
-    if output_type is bytes:
-        names = map(fsencode, names)
+        prefix, suffix, dir, output_type = _sanitize_params(prefix, suffix, dir)
 
-    for seq in range(TMP_MAX):
-        return path.join(dir, prefix + next(names) + suffix)
+        names = _get_candidate_names()
+        if output_type is bytes:
+            names = map(fsencode, names)
+
+        for seq in range(TMP_MAX):
+            return path.join(dir, prefix + next(names) + suffix)
