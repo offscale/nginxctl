@@ -2,16 +2,17 @@ from __future__ import absolute_import, unicode_literals
 
 from copy import deepcopy
 from functools import partial
-from os import path, linesep
+from os import linesep, path
 from shutil import rmtree
 from tempfile import mkdtemp
-from unittest import TestCase, main as unittest_main
+from unittest import TestCase
+from unittest import main as unittest_main
 
 import crossplane
 from boltons.iterutils import remap
 from pkg_resources import resource_filename
 
-from nginxctl.helpers import get_dict_by_key_val, del_keys_d, update_directive
+from nginxctl.helpers import del_keys_d, get_dict_by_key_val, update_directive
 from nginxctl.parser import parse_cli_config
 from nginxctl.pkg_utils import PythonPackageInfo
 

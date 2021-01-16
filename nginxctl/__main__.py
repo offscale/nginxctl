@@ -20,7 +20,8 @@ if sys.version[0] == "2":
     from tempfile import mkdtemp as gettemp
 else:
     from nginxctl.helpers import gettemp
-from nginxctl.parser import parse_cli_config, cli_to_context2block
+
+from nginxctl.parser import cli_to_context2block, parse_cli_config
 from nginxctl.pkg_utils import PythonPackageInfo
 from nginxctl.serve import serve
 

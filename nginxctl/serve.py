@@ -13,7 +13,7 @@ from boltons.iterutils import research
 from pkg_resources import resource_filename
 
 from nginxctl import get_logger
-from nginxctl.helpers import pp, is_directive
+from nginxctl.helpers import is_directive, pp
 from nginxctl.pkg_utils import PythonPackageInfo
 
 logger = get_logger(

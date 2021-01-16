@@ -124,7 +124,7 @@ def strings(filename, minimum=4):
 # From stdlib
 if sys.version[0] == "3":
     from os import fsencode, path
-    from tempfile import _sanitize_params, _get_candidate_names, TMP_MAX
+    from tempfile import TMP_MAX, _get_candidate_names, _sanitize_params
 
     def gettemp(suffix=None, prefix=None, dir=None):
         """User-callable function to create and return a unique temporary
