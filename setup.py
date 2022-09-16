@@ -8,9 +8,15 @@ setup.py implementation, interesting because it parsed the first __init__.py and
 from ast import parse
 from distutils.sysconfig import get_python_lib
 from functools import partial
+from operator import attrgetter, itemgetter
 from os import listdir, path
+from sys import version_info
 
 from setuptools import find_packages, setup
+
+if version_info[0] == 2:
+    from itertools import ifilter as filter
+    from itertools import imap as map
 
 package_name = "nginxctl"
 
@@ -22,7 +28,7 @@ def to_funcs(*paths):
     :param paths: one or more str, referring to relative folder names
     :type paths: ```*paths```
 
-    :return: 2 functions
+    :returns: 2 functions
     :rtype: ```Tuple[Callable[Optional[List[str]], str], Callable[Optional[List[str]], str]]```
     """
     return (
@@ -34,11 +40,23 @@ def to_funcs(*paths):
 if __name__ == "__main__":
     with open(path.join(package_name, "__init__.py")) as f:
         __author__, __version__ = map(
-            lambda buf: next(map(lambda e: e.value.s, parse(buf).body)),
-            filter(
-                lambda line: line.startswith("__version__")
-                or line.startswith("__author__"),
-                f,
+            lambda const: const.value if version_info > (3, 6) else const.s,
+            map(
+                attrgetter("value"),
+                map(
+                    itemgetter(0),
+                    map(
+                        attrgetter("body"),
+                        map(
+                            parse,
+                            filter(
+                                lambda line: line.startswith("__version__")
+                                or line.startswith("__author__"),
+                                f,
+                            ),
+                        ),
+                    ),
+                ),
             ),
         )
 
