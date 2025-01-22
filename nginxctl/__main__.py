@@ -67,11 +67,8 @@ def _build_parser():
         default_nginx_usage = next(
             line for line in strings(default_nginx) if "set prefix path" in line
         ).split()
-        default_prefix, default_conf = tuple(
-            l[:-1]
-            for i, l in enumerate(default_nginx_usage)
-            if i > 0 and "default" in default_nginx_usage[i - 1]
-        )
+        default_conf = next(filter(lambda s: s.endswith('nginx.conf)'), default_nginx_usage))[:-1]
+        default_prefix = os.path.dirname(default_conf)
 
     parser = ArgumentParser(
         prog="python -m {}".format(PythonPackageInfo().get_app_name()),

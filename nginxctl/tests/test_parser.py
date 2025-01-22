@@ -12,7 +12,7 @@ import crossplane
 from boltons.iterutils import remap
 from pkg_resources import resource_filename
 
-from nginxctl.helpers import del_keys_d, get_dict_by_key_val, update_directive
+from nginxctl.helpers import del_keys_d, get_dict_by_key_val, update_directive, pp
 from nginxctl.parser import parse_cli_config
 from nginxctl.pkg_utils import PythonPackageInfo
 
@@ -45,6 +45,7 @@ class TestParser(TestCase):
         rmtree(self.temp_dir)
 
     def test_filter_map_block(self):
+        pp(self.nginx_conf_parse)
         for config in self.nginx_conf_parse["config"]:
             self.assertEqual(config["status"], "ok")
 
