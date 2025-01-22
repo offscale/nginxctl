@@ -19,6 +19,7 @@ from nginxctl.pkg_utils import PythonPackageInfo
 
 
 class TestParser(TestCase, object):
+    __name__ = 'TestParser'
     maxDiff = 1200
 
     def setUp(self):
@@ -39,7 +40,7 @@ class TestParser(TestCase, object):
             self.nginx_conf_fname, catch_errors=False, comments=False
         )
 
-        self.temp_dir = mkdtemp(app_name, getattr(self.__class__, '__name__', 'TestParser'))
+        self.temp_dir = mkdtemp(app_name, self.__class__.__name__)
         self.tmp_nginx_conf_fname = path.join(self.temp_dir, "nginx.conf")
 
     def tearDown(self):
