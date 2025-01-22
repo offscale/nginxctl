@@ -1,7 +1,5 @@
 from __future__ import absolute_import, unicode_literals
 
-import ast
-import sys
 import unittest
 from copy import deepcopy
 from functools import partial
