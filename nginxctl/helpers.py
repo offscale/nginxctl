@@ -6,8 +6,8 @@ from sys import version_info
 if version_info[0] == 2:
     from codecs import open
 
-    maketrans = string.maketrans
-    string_types = basestring,
+    maketrans = string.maketrans  # noqa: F821
+    string_types = basestring,  # noqa: F821
 else:
     maketrans = str.maketrans
     string_types = str,

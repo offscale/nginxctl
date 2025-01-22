@@ -8,12 +8,13 @@ from collections import deque
 from enum import Enum
 from itertools import chain
 from operator import itemgetter
-if sys.version_info[0] == 2:
-  from whichcraft import which
-  from itertools import ifilter as filter
-else:
-  from shutil import which
 from subprocess import Popen
+
+if sys.version_info[0] == 2:
+    from whichcraft import which
+    from itertools import ifilter as filter
+else:
+    from shutil import which
 
 import crossplane
 
