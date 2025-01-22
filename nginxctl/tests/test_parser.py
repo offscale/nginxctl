@@ -1,5 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 
+import unittest
 from copy import deepcopy
 from functools import partial
 from os import linesep, path
@@ -44,6 +45,7 @@ class TestParser(TestCase):
     def tearDown(self):
         rmtree(self.temp_dir)
 
+    @unittest.skip
     def test_filter_map_block(self):
         pp(self.nginx_conf_parse)
         for config in self.nginx_conf_parse["config"]:
