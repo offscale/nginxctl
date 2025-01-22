@@ -21,7 +21,6 @@ from nginxctl.pkg_utils import PythonPackageInfo
 
 
 class TestParser(TestCase, object):
-    __name__ = (ast.Str if sys.version_info[0] == 2 else ast.Constant)('TestParser')
     maxDiff = 1200
 
     def setUp(self):
@@ -48,7 +47,7 @@ class TestParser(TestCase, object):
     def tearDown(self):
         rmtree(self.temp_dir)
 
-    @unittest.skip
+    @unittest.skip('')
     def test_filter_map_block(self):
         pp(self.nginx_conf_parse)
         for config in self.nginx_conf_parse["config"]:
