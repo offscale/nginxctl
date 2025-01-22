@@ -18,7 +18,7 @@ from nginxctl.parser import parse_cli_config
 from nginxctl.pkg_utils import PythonPackageInfo
 
 
-class TestParser(TestCase):
+class TestParser(TestCase, object):
     maxDiff = 1200
 
     def setUp(self):
