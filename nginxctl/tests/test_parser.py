@@ -1,5 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 
+import ast
+import sys
 import unittest
 from copy import deepcopy
 from functools import partial
@@ -19,7 +21,7 @@ from nginxctl.pkg_utils import PythonPackageInfo
 
 
 class TestParser(TestCase, object):
-    __name__ = 'TestParser'
+    __name__ = (ast.Str if sys.version_info[0] == 2 else ast.Constant)('TestParser')
     maxDiff = 1200
 
     def setUp(self):
