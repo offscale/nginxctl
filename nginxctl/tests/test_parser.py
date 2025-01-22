@@ -39,7 +39,7 @@ class TestParser(TestCase, object):
             self.nginx_conf_fname, catch_errors=False, comments=False
         )
 
-        self.temp_dir = mkdtemp(app_name, self.__class__.__name__)
+        self.temp_dir = mkdtemp(app_name, getattr(self.__class__, '__name__', 'TestParser'))
         self.tmp_nginx_conf_fname = path.join(self.temp_dir, "nginx.conf")
 
     def tearDown(self):
