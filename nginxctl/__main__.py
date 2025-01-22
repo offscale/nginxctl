@@ -8,13 +8,17 @@ from collections import deque
 from enum import Enum
 from itertools import chain
 from operator import itemgetter
-from shutil import which
+if sys.version_info[0] == 2:
+  from whichcraft import which
+  from itertools import ifilter as filter
+else:
+  from shutil import which
 from subprocess import Popen
 
 import crossplane
 
 from nginxctl import __version__, get_logger
-from nginxctl.helpers import strings, unquoted_str
+from nginxctl.helpers import strings, unquoted_str, rpartial
 
 if sys.version[0] == "2":
     from tempfile import mkdtemp as gettemp
@@ -67,7 +71,7 @@ def _build_parser():
         default_nginx_usage = next(
             line for line in strings(default_nginx) if "set prefix path" in line
         ).split()
-        default_conf = next(filter(lambda s: s.endswith('nginx.conf)'), default_nginx_usage))[:-1]
+        default_conf = next(filter(rpartial(str.endswith, 'nginx.conf)'), default_nginx_usage))[:-1]
         default_prefix = os.path.dirname(default_conf)
 
     parser = ArgumentParser(

@@ -3,12 +3,18 @@ from pprint import PrettyPrinter
 from string import printable
 from sys import version_info
 
+if version_info[0] == 2:
+    from codecs import open
+    from string import maketrans
+else:
+    maketrans = str.maketrans
+
 string_types = (basestring,) if version_info.major == 2 else (str,)  # noqa: F821
 pp = PrettyPrinter(indent=4).pprint
 
 
 def unquoted_str(arg):
-    return arg.translate(str.maketrans(dict.fromkeys("'\"", "")))
+    return arg.translate(maketrans(dict.fromkeys("'\"", "")))
 
 
 def update_d(d, arg=None, **kwargs):
@@ -106,6 +112,8 @@ def get_dict_by_key_val(obj, key, value):
             "get_dict_by_key_val for {!r} {}".format(type(obj), obj)
         )
 
+def rpartial(func, *args):
+    return lambda *a: func(*(a + args))
 
 def strings(filename, minimum=4):
     with open(filename, errors="ignore") as f:

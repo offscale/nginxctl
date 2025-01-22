@@ -10,11 +10,11 @@ Commands for modifying and controlling nginx over the command-line.
 
 ## Install dependencies
 
-    pip install -r requirements.txt
+    python -m pip install -r requirements.txt
 
 ## Install package
 
-    pip install .
+    python -m pip install .
 
 ## Usage
 
@@ -62,8 +62,8 @@ Commands for modifying and controlling nginx over the command-line.
                   --server_name 'localhost' --listen '8080' \
                   -b location '/' \
                     --root '/tmp/wwwroot' \
-                  -} \
-                -}
+                  -'}' \
+                -'}'
     nginx is running. Stop with: /usr/local/bin/nginx -c /tmp/nginx.conf -s stop
     $ curl -Is http://localhost:8080 | head -n1
     127.0.0.1 - - [03/Apr/2020:01:21:45 +1100] "HEAD / HTTP/1.1" 200 0 "-" "curl/7.64.1"
