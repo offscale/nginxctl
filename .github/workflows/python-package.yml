@@ -17,15 +17,15 @@ jobs:
     - uses: actions/checkout@v4
     - name: Install dependencies
       run: |
-        python --version
-        pip install --upgrade pip setuptools wheel
-        pip install -r requirements.txt
+        python2 --version
+        pip2 install --upgrade pip setuptools wheel
+        pip2 install -r requirements.txt
     - name: Lint with flake8
       run: |
-        pip install flake8
+        pip2 install flake8
         flake8 . --count --select=$(printf '%s,' {A..Z}) --ignore='W503,E203' --show-source --max-complexity=13 --max-line-length=119 --statistics
     - name: Test with unittest
-      run: python -m unittest discover -s nginxctl/tests
+      run: python2 setup.py test
 
   build:
 
@@ -50,4 +50,4 @@ jobs:
         flake8 . --count --select=$(printf '%s,' {A..Z}) --ignore='W503,E203' --show-source --max-complexity=13 --max-line-length=119 --statistics
     - name: Test with unittest
       run: |
-        python setup.py test
+        python -m unittest discover -s nginxctl/tests
